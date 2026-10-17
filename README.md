@@ -1,6 +1,6 @@
-# NET - APP ACCOUNT SELLER
+# NET - ECOMMERCE
 
-Welcome to the **NET** Account Seller Web Application!  
+Welcome to the **OUR** Web Application!  
 This platform allows users to buy and sell gaming accounts easily and securely.
 
 ---
