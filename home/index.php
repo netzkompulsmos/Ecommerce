@@ -21,7 +21,7 @@ if ($hour < 12) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NET STORE • DNA Helix Cyber Live Edition</title>
+    <title>www.netstoreonline.com</title>
     <!-- Icons & Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" href="./logo/logome.png" type="image/x-icon">
@@ -57,9 +57,9 @@ if ($hour < 12) {
                     <div class="brand-titles">
                         <h1>
                             NET STORE
-                            <span class="dna-badge">🧬 DNA 3D</span>
+                            <span class="dna-badge">V.1.2</span>
                         </h1>
-                        <span>NEXT-GEN ACCOUNT PLATFORM</span>
+                        <span>បម្រើការសេវាកម្មឌីជីថល</span>
                     </div>
                 </a>
 
@@ -67,13 +67,13 @@ if ($hour < 12) {
                 <div class="nav-hologram-links">
                     <a href="index.php" class="nav-tab-btn active"><i class="fas fa-microchip"></i> ទំព័រដើម</a>
                     <a href="about.php" class="nav-tab-btn"><i class="fas fa-atom"></i> អំពីយើង</a>
-                    <a href="../customer-service/index.php" class="nav-tab-btn"><i class="fas fa-satellite-dish"></i> ជំនួយ 24/7</a>
+                    <a href="../customer-service/index.php" class="nav-tab-btn"><i class="fas fa-satellite-dish"></i> ជំនួយការ</a>
                     <a href="#payments" class="nav-tab-btn"><i class="fas fa-credit-card"></i> ការទូទាត់</a>
                 </div>
 
                 <!-- Action Hub -->
                 <div class="nav-actions">
-                    <a href="https://t.me/netisnet" target="_blank" rel="noopener noreferrer" class="cyber-glow-btn" style="padding: 7px 14px; font-size: 13px;">
+                    <a href="https://t.me/netstillloser" target="_blank" rel="noopener noreferrer" class="cyber-glow-btn" style="padding: 7px 14px; font-size: 13px;">
                         <i class="fab fa-telegram-plane" style="color: #00f0ff;"></i>
                         <span class="hide-sm">Telegram</span>
                     </a>
@@ -91,11 +91,11 @@ if ($hour < 12) {
         <!-- Mobile Drawer -->
         <div id="mobileMenuDrawer" style="display: none; position: fixed; top: 80px; left: 16px; right: 16px; z-index: 999; background: rgba(8, 14, 28, 0.95); backdrop-filter: blur(30px); border: 1px solid var(--cyber-cyan); border-radius: 24px; padding: 22px; box-shadow: 0 0 35px rgba(0,240,255,0.3);">
             <div style="display: flex; flex-direction: column; gap: 12px;">
-                <a href="index.php" class="nav-tab-btn active"><i class="fas fa-microchip"></i> ទំព័រដើម (Home)</a>
-                <a href="about.php" class="nav-tab-btn"><i class="fas fa-atom"></i> អំពីយើង (About)</a>
-                <a href="../customer-service/index.php" class="nav-tab-btn"><i class="fas fa-satellite-dish"></i> ជំនួយ 24/7 (Support)</a>
-                <a href="#payments" class="nav-tab-btn"><i class="fas fa-credit-card"></i> ការទូទាត់ (Payments)</a>
-                <a href="../admin-login/index.php" class="nav-tab-btn" style="color: var(--cyber-cyan);"><i class="fas fa-shield-halved"></i> ចូលគណនី Admin</a>
+                <a href="index.php" class="nav-tab-btn active"><i class="fas fa-microchip"></i> ទំព័រដើម</a>
+                <a href="about.php" class="nav-tab-btn"><i class="fas fa-atom"></i> អំពីយើង</a>
+                <a href="../customer-service/index.php" class="nav-tab-btn"><i class="fas fa-satellite-dish"></i> ជំនួយការ</a>
+                <a href="#payments" class="nav-tab-btn"><i class="fas fa-credit-card"></i> ការទូទាត់</a>
+                <a href="../admin-login/index.php" class="nav-tab-btn" style="color: var(--cyber-cyan);"><i class="fas fa-shield-halved"></i>Admin</a>
             </div>
         </div>
 
@@ -111,11 +111,11 @@ if ($hour < 12) {
                 <div class="hud-item">
                     <i class="far fa-clock" style="color: var(--cyber-cyan);"></i>
                     <span id="liveClockDisplay" style="font-family: 'Space Grotesk', monospace; color: #fff;">--:--:--</span>
-                    <span style="color: var(--text-dim); font-size: 11px;">Phnom Penh (GMT+7)</span>
+                    <span style="color: var(--text-dim); font-size: 11px;">Phnom Penh</span>
                 </div>
                 <div class="hud-item">
                     <div class="dna-signal-pulse"></div>
-                    <span style="color: var(--cyber-emerald); font-weight: 700;">🧬 DNA LIVE ENGINE: 60 FPS</span>
+                    <span style="color: var(--cyber-emerald); font-weight: 700;">60 FPS</span>
                 </div>
             </div>
 
@@ -125,22 +125,22 @@ if ($hour < 12) {
                     <div class="hero-tag-pill">
                         <i class="fas fa-bolt"></i> Bio-Digital Account Matrix
                     </div>
-                    <h2>ទិញ ACCOUNT កម្មវិធីគុណភាពខ្ពស់ 100%</h2>
+                    <h2>គុណភាពខ្ពស់ 100%</h2>
                     <p>
-                        ប្រព័ន្ធទិញ-លក់គណនីឌីជីថលលំដាប់ខ្ពស់ប្រកបដោយសុវត្ថិភាព ដឹកជញ្ជូនរហ័សទាន់ចិត្ត ធានាជូនពេញមួយខែ និងគាំទ្រការទូទាត់គ្រប់ធនាគារក្នុងប្រទេសកម្ពុជា។
+                        ប្រព័ន្ធទិញ-លក់គណនីឌីជីថលលំដាប់ខ្ពស់ប្រកបដោយសុវត្ថិភាព ធានាជូនពេញមួយខែ និងគាំទ្រការទូទាត់គ្រប់ធនាគារក្នុងប្រទេសកម្ពុជា។
                     </p>
                     <div class="hero-stats-row">
                         <div class="stat-chip">
                             <div class="stat-num">99.9<span>%</span></div>
-                            <div class="stat-label">Uptime & Instant Delivery</div>
+                            <div class="stat-label">Uptime</div>
                         </div>
                         <div class="stat-chip">
                             <div class="stat-num">100<span>%</span></div>
-                            <div class="stat-label">Full Warranty Guarantee</div>
+                            <div class="stat-label">Full Warranty</div>
                         </div>
                         <div class="stat-chip">
                             <div class="stat-num">10K<span>+</span></div>
-                            <div class="stat-label">Satisfied Customers</div>
+                            <div class="stat-label">Customers</div>
                         </div>
                     </div>
                 </div>
@@ -151,63 +151,29 @@ if ($hour < 12) {
                     <img src="./logo/logome.png" alt="NET Floating Emblem" class="hero-floating-logo">
                 </div>
             </div>
-
-            <!-- Capabilities Grid -->
-            <div class="cyber-trust-grid">
-                <div class="cyber-trust-card">
-                    <div class="trust-glow-icon"><i class="fas fa-bolt"></i></div>
-                    <div class="trust-texts">
-                        <h4>ដឹកជញ្ជូនរហ័ស</h4>
-                        <p>Instant Auto-Delivery</p>
-                    </div>
-                </div>
-                <div class="cyber-trust-card">
-                    <div class="trust-glow-icon" style="color: var(--cyber-emerald); border-color: var(--cyber-emerald);"><i class="fas fa-shield-halved"></i></div>
-                    <div class="trust-texts">
-                        <h4>ធានាសុវត្ថិភាព 100%</h4>
-                        <p>100% Verified & Safe</p>
-                    </div>
-                </div>
-                <div class="cyber-trust-card">
-                    <div class="trust-glow-icon" style="color: var(--cyber-pink); border-color: var(--cyber-pink);"><i class="fas fa-qrcode"></i></div>
-                    <div class="trust-texts">
-                        <h4>ទូទាត់រហ័ស KHQR</h4>
-                        <p>Bakong & All Banks</p>
-                    </div>
-                </div>
-                <div class="cyber-trust-card">
-                    <div class="trust-glow-icon" style="color: var(--cyber-amber); border-color: var(--cyber-amber);"><i class="fas fa-headset"></i></div>
-                    <div class="trust-texts">
-                        <h4>ជំនួយ 24/7</h4>
-                        <p>Telegram Support Desk</p>
-                    </div>
-                </div>
-            </div>
         </main>
-
-        <!-- Neural Search & Category Filter Strip -->
-        <section class="neural-filter-section">
-            <div class="cyber-search-box">
-                <i class="fas fa-magnifying-glass search-beam-icon"></i>
-                <input type="text" id="liveSearchInput" placeholder="ស្វែងរកកម្មវិធី ឬ Account ដែលអ្នកចង់ទិញ (Search by name)..." autocomplete="off">
-            </div>
-
-            <div class="category-tab-strip" id="categoryTabStrip">
-                <button class="cyber-category-pill active" data-category="all"><i class="fas fa-globe"></i> ទាំងអស់ (All)</button>
-                <button class="cyber-category-pill" data-category="streaming"><i class="fas fa-play-circle"></i> Streaming & Music</button>
-                <button class="cyber-category-pill" data-category="ai"><i class="fas fa-brain"></i> AI Neural Tools</button>
-                <button class="cyber-category-pill" data-category="design"><i class="fas fa-palette"></i> Design & Video</button>
-                <button class="cyber-category-pill" data-category="social"><i class="fas fa-paper-plane"></i> Social VIP</button>
-            </div>
-        </section>
 
         <!-- Products Showcase Matrix -->
         <section class="catalog-header">
             <div class="hero-tag-pill" style="margin-bottom: 8px;">
                 <i class="fas fa-layer-group"></i> Active Neural Catalog
             </div>
-            <h2>សូមជ្រើសរើសកម្មវិធីដែលអ្នកចង់ទិញ</h2>
-            <p>ចុចប៊ូតុង "ទិញឥឡូវនេះ" ដើម្បីបន្តការទូទាត់ និងទទួល Account ភ្លាមៗ</p>
+        </section>
+
+        <!-- Neural Search & Category Filter Strip -->
+        <section class="neural-filter-section">
+            <div class="cyber-search-box">
+                <i class="fas fa-magnifying-glass search-beam-icon"></i>
+                <input type="text" id="liveSearchInput" placeholder="ស្វែងរកកម្មវិធី..." autocomplete="off">
+            </div>
+    
+            <div class="category-tab-strip" id="categoryTabStrip">
+                <button class="cyber-category-pill active" data-category="all"><i class="fas fa-globe"></i> ទាំងអស់</button>
+                <button class="cyber-category-pill" data-category="streaming"><i class="fas fa-play-circle"></i> Streaming & Music</button>
+                <button class="cyber-category-pill" data-category="ai"><i class="fas fa-brain"></i> AI Neural Tools</button>
+                <button class="cyber-category-pill" data-category="design"><i class="fas fa-palette"></i> Design & Video</button>
+                <button class="cyber-category-pill" data-category="social"><i class="fas fa-paper-plane"></i> Social VIP</button>
+            </div>
         </section>
 
         <div class="cyber-cards-matrix" id="productsCatalogMatrix">
@@ -397,12 +363,44 @@ if ($hour < 12) {
             }
             ?>
         </div>
+            
+        <!-- Capabilities Grid -->
+            <div class="cyber-trust-grid">
+                <div class="cyber-trust-card">
+                    <div class="trust-glow-icon"><i class="fas fa-bolt"></i></div>
+                    <div class="trust-texts">
+                        <h4>ដឹកជញ្ជូនរហ័ស</h4>
+                        <p>Instant Auto-Delivery</p>
+                    </div>
+                </div>
+                <div class="cyber-trust-card">
+                    <div class="trust-glow-icon" style="color: var(--cyber-emerald); border-color: var(--cyber-emerald);"><i class="fas fa-shield-halved"></i></div>
+                    <div class="trust-texts">
+                        <h4>ធានាសុវត្ថិភាព 100%</h4>
+                        <p>100% Verified & Safe</p>
+                    </div>
+                </div>
+                <div class="cyber-trust-card">
+                    <div class="trust-glow-icon" style="color: var(--cyber-pink); border-color: var(--cyber-pink);"><i class="fas fa-qrcode"></i></div>
+                    <div class="trust-texts">
+                        <h4>ទូទាត់រហ័ស KHQR</h4>
+                        <p>Bakong & All Banks</p>
+                    </div>
+                </div>
+                <div class="cyber-trust-card">
+                    <div class="trust-glow-icon" style="color: var(--cyber-amber); border-color: var(--cyber-amber);"><i class="fas fa-headset"></i></div>
+                    <div class="trust-texts">
+                        <h4>ជំនួយ 24/7</h4>
+                        <p>Telegram Support Desk</p>
+                    </div>
+                </div>
+            </div>
 
-        <!-- Payment Partners Matrix -->
-        <section class="payment-matrix-strip" id="payments">
+        <!-- Cyber Floating Footer -->
+        <footer class="cyber-footer">
             <h3>
                 <i class="fas fa-credit-card" style="color: var(--cyber-cyan);"></i>
-                ដៃគូសហការ និងវិធីទូទាត់ប្រាក់ (Payment Matrix)
+                ដៃគូសហការ និងវិធីទូទាត់ប្រាក់
             </h3>
             <p style="font-size: 13.5px; color: var(--text-muted); max-width: 600px;">
                 ទទួលការទូទាត់យ៉ាងរហ័សតាមរយៈប្រព័ន្ធ KHQR និងគ្រប់ធនាគារក្នុងប្រទេសកម្ពុជា
@@ -429,28 +427,8 @@ if ($hour < 12) {
                     <span>Canadia</span>
                 </div>
             </div>
-        </section>
-
-        <!-- Cyber Floating Footer -->
-        <footer class="cyber-footer">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div class="brand-hologram-cube" style="width: 36px; height: 36px;">
-                    <img src="./logo/icon.png" alt="Logo" onerror="this.src='./logo/logome.png'">
-                </div>
-                <span style="font-size: 17px; font-weight: 800; color: #fff; font-family: 'Space Grotesk', sans-serif;">NET APP ACCOUNT SELLER</span>
-            </div>
-
-            <p style="font-size: 14px; color: var(--text-muted); max-width: 520px;">
-                សេវាកម្មទិញ-លក់ Account កម្មវិធី និងសេវាកម្មឌីជីថលលំដាប់ខ្ពស់ប្រកបដោយទំនុកចិត្ត និងសុវត្ថិភាព 100%
-            </p>
-
-            <a href="https://t.me/netisnet" target="_blank" rel="noopener noreferrer" class="footer-cyber-tg-btn">
-                <i class="fab fa-telegram-plane" style="font-size: 20px;"></i>
-                <span>ទំនាក់ទំនងទិញផ្ទាល់តាម Telegram (@netisnet)</span>
-            </a>
-
             <div style="font-size: 12px; color: var(--text-dim); border-top: 1px solid rgba(0, 240, 255, 0.15); padding-top: 18px; width: 100%; font-family: 'Space Grotesk', sans-serif;">
-                &copy; <?php echo date('Y'); ?> NET APP SELLER • DNA Helix Cyber Live Edition. All rights reserved.
+                &copy; <?php echo date('Y'); ?> NET APP SELLER • All rights reserved.
             </div>
         </footer>
     </div>
