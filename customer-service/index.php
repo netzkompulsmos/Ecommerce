@@ -12,26 +12,67 @@
         .support-cyber-layer {
             position: relative;
             z-index: 10;
-            min-height: 100vh;
+            width: min(1180px, 100%);
+            min-height: calc(100vh - 112px);
+            margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px 16px;
+            padding: clamp(20px, 4vw, 48px) 24px;
         }
 
         .support-cyber-card {
             width: 100%;
-            max-width: 520px;
+            min-height: min(660px, calc(100vh - 160px));
+            display: grid;
+            grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+            align-content: center;
+            align-items: center;
+            column-gap: clamp(28px, 5vw, 64px);
+            row-gap: 18px;
             background: rgba(10, 16, 32, 0.78);
             backdrop-filter: blur(28px) saturate(200%);
             -webkit-backdrop-filter: blur(28px) saturate(200%);
             border: 1px solid var(--cyber-cyan);
             border-radius: 32px;
-            padding: 36px 30px;
+            padding: clamp(28px, 5vw, 64px);
             box-shadow: 
                 0 25px 60px -10px rgba(0, 0, 0, 0.9),
                 0 0 35px rgba(0, 240, 255, 0.25),
                 inset 0 1px 1px rgba(255, 255, 255, 0.4);
+        }
+
+        .support-intro {
+            grid-column: 1;
+            grid-row: 1 / span 2;
+            text-align: left;
+        }
+
+        .support-intro h2 {
+            font-size: clamp(28px, 3vw, 42px);
+            font-weight: 800;
+            line-height: 1.3;
+            color: #fff;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .support-intro p {
+            max-width: 440px;
+            margin-top: 14px;
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        .support-intro .dna-badge {
+            display: inline-flex;
+            margin-top: 20px;
+        }
+
+        .support-form {
+            grid-column: 2;
+            grid-row: 1;
+            width: 100%;
         }
 
         .form-group {
@@ -92,6 +133,57 @@
             border: 1px solid var(--cyber-pink);
             color: #ff66b2;
         }
+
+        .support-after-form {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .support-direct-contact {
+            margin-top: 0;
+        }
+
+        @media (max-width: 760px) {
+            .support-cyber-layer {
+                min-height: calc(100vh - 90px);
+                padding: 22px 16px;
+            }
+
+            .support-cyber-card {
+                min-height: 0;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 22px;
+                padding: clamp(22px, 6vw, 36px);
+                border-radius: 26px;
+            }
+
+            .support-intro,
+            .support-form,
+            .support-after-form {
+                grid-column: 1;
+                grid-row: auto;
+            }
+
+            .support-intro {
+                text-align: center;
+            }
+
+            .support-intro p {
+                margin-right: auto;
+                margin-left: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .support-cyber-layer {
+                padding: 18px 10px;
+            }
+
+            .support-cyber-card {
+                padding: 22px 16px;
+                border-radius: 22px;
+            }
+        }
     </style>
 </head>
 
@@ -101,28 +193,31 @@
     <div class="canvas-overlay-vignette"></div>
     <div class="cyber-grid-lines"></div>
 
+    <?php
+    $nav_active = 'support';
+    $nav_home_url = '../home/index.php';
+    $nav_about_url = '../home/index.php?page=about';
+    $nav_support_url = 'index.php';
+    $nav_payments_url = '../home/index.php#payments';
+    $nav_admin_url = '../admin-login/index.php';
+    require __DIR__ . '/../home/navbar.php';
+    ?>
+
     <div class="support-cyber-layer">
         <div class="support-cyber-card">
-            <!-- Header bar -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <a href="../home/index.php" class="cyber-glow-btn" style="padding: 6px 16px; font-size: 13px;">
-                    <i class="fas fa-arrow-left"></i> ត្រឡប់ក្រោយ
-                </a>
+            <div class="support-intro">
+                <h2>
+                    ជំនួយ & ទំនាក់ទំនងអតិថិជន
+                </h2>
+                <p>
+                    មានសំណួរ ឬត្រូវការជំនួយអំពីសេវាកម្ម និងការបញ្ជាទិញមែនទេ? ផ្ញើសារមកក្រុមការងារ ហើយយើងនឹងជួយណែនាំអ្នកតាមជំហាន។
+                </p>
                 <span class="dna-badge" style="font-size: 11px; padding: 4px 10px;">
                     <i class="fas fa-satellite-dish"></i> Support 24/7
                 </span>
             </div>
 
-            <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="font-size: 26px; font-weight: 800; color: #fff; font-family: 'Space Grotesk', sans-serif;">
-                    ជំនួយ & ទំនាក់ទំនងអតិថិជន
-                </h2>
-                <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">
-                    សូមបញ្ចេញមតិ ឬស្នើសុំជំនួយពីក្រុមការងារបច្ចេកទេស
-                </p>
-            </div>
-
-            <form method="POST" action="submit-form.php">
+            <form class="support-form" method="POST" action="submit-form.php">
                 <div class="form-group">
                     <label><i class="fas fa-user" style="color: var(--cyber-cyan); margin-right: 6px;"></i> ឈ្មោះរបស់អ្នក (Name)</label>
                     <input type="text" name="name" class="form-control-cyber" placeholder="ឧទាហរណ៍: Sokha" required>
@@ -143,6 +238,7 @@
                 </button>
             </form>
 
+            <div class="support-after-form">
             <?php
             if (isset($_GET['success'])) {
                 echo '<div class="alert-cyber alert-success"><i class="fas fa-check-circle"></i> សាររបស់អ្នកត្រូវបានបញ្ជូនដោយជោគជ័យ!</div>';
@@ -152,13 +248,14 @@
             }
             ?>
 
-            <div style="text-align: center; margin-top: 24px; border-top: 1px solid rgba(0,240,255,0.15); padding-top: 18px;">
+            <div class="support-direct-contact" style="text-align: center; border-top: 1px solid rgba(0,240,255,0.15); padding-top: 18px;">
                 <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 10px;">
                     ឬទាក់ទងមក Admin ផ្ទាល់ 24/7៖
                 </p>
                 <a href="https://t.me/netisnet" target="_blank" rel="noopener noreferrer" class="cyber-glow-btn" style="width: 100%; padding: 11px; justify-content: center;">
                     <i class="fab fa-telegram-plane"></i> Telegram Support (@netisnet)
                 </a>
+            </div>
             </div>
         </div>
     </div>
