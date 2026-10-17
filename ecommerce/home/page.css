@@ -1,153 +1,984 @@
-        h3 {
-            color: #15ff00;
-            font-size: 24px;
-            margin: 20px 0;
-        }
+@import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-        .game-card img {
-            width: 250px;
-            height: 250px;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto 10px auto;
-            border-radius: 10px;
-        }
+:root {
+    --bg-dark: #040711;
+    --cyber-cyan: #00f0ff;
+    --cyber-purple: #9d4edd;
+    --cyber-pink: #ff2a85;
+    --cyber-emerald: #00ffaa;
+    --cyber-amber: #ffb703;
+    
+    --card-bg: rgba(10, 16, 32, 0.65);
+    --card-border: rgba(0, 240, 255, 0.22);
+    --card-border-glow: rgba(0, 240, 255, 0.65);
+    --card-blur: blur(24px) saturate(190%);
+    
+    --text-white: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.65);
+    --text-dim: rgba(255, 255, 255, 0.4);
+    
+    --radius-pill: 9999px;
+    --radius-card: 26px;
+    --radius-hud: 18px;
+}
 
-        .buy-btn {
-            background: rgb(235, 174, 7);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 28px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-        .buy-btn:hover,
-        .buy-btn:focus {
-            background: #27ae60;
-            color: #fff;
-        }
+html {
+    scroll-behavior: smooth;
+    color-scheme: dark;
+}
 
-        footer {
-            background: #222;
-            color: #fff;
-            padding: 32px 0 24px 0;
-            text-align: center;
-            margin-top: 40px;
-        }
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-white);
+    font-family: 'Outfit', 'Kantumruy Pro', -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+}
 
-        footer .social-icons a {
-            color: #fff;
-            font-size: 28px;
-            margin: 0 10px;
-        }
+/* ==========================================================================
+   DNA Helix Live Canvas Background
+   ========================================================================== */
+#dna-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+}
 
-        footer .payment img {
-            width: 120px;
-            height: auto;
-            border-radius: 8px;
-        }
+.canvas-overlay-vignette {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 30%, rgba(4, 7, 17, 0.35) 0%, rgba(4, 7, 17, 0.88) 85%);
+}
 
-        footer .copyright {
-            margin-top: 18px;
-            font-size: 14px;
-            color: #bbb;
-        }
+.cyber-grid-lines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    pointer-events: none;
+    background-image: 
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.6;
+}
 
-        .game-grid {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 24px;
-            padding: 20px 0;
-            width: 100%;
-            margin: 0 auto;
-        }
+/* Everything on top of canvas */
+.app-content-layer {
+    position: relative;
+    z-index: 10;
+}
 
-        .banner {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 24px;
-            padding: 20px 0;
-            width: 100%;
-            margin: 0 auto;
-        }
+/* ==========================================================================
+   Holographic Cyber Island Navigation
+   ========================================================================== */
+.cyber-nav-container {
+    position: sticky;
+    top: 18px;
+    z-index: 1000;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 0 16px;
+}
 
-        #loader-wrapper {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #111;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            transition: opacity 1.0s ease, visibility 1.5s ease;
-        }
+.cyber-island-nav {
+    width: 100%;
+    max-width: 1180px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: rgba(8, 14, 28, 0.75);
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    border: 1px solid rgba(0, 240, 255, 0.28);
+    border-radius: var(--radius-pill);
+    box-shadow: 
+        0 15px 35px -5px rgba(0, 0, 0, 0.7),
+        0 0 25px rgba(0, 240, 255, 0.15),
+        inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
+}
 
-        #loader {
-            border: 8px solid #0c1be9ff;
-            border-top: 8px solid #00ff99;
-            border-radius: 50%;
-            width: 70px;
-            height: 70px;
-            animation: spin 1s linear infinite;
-        }
+.brand-emblem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #fff;
+}
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+.brand-hologram-cube {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(157, 78, 221, 0.25));
+    border: 1px solid var(--cyber-cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    overflow: hidden;
+}
 
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            text-align: center;
-        }
+.brand-hologram-cube img {
+    width: 78%;
+    height: 78%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 6px var(--cyber-cyan));
+}
 
-        h1 {
-            margin-top: 20px;
-            color: #333;
-        }
+.brand-titles h1 {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    font-family: 'Space Grotesk', sans-serif;
+    background: linear-gradient(90deg, #ffffff 30%, var(--cyber-cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.1;
+}
 
-        .slider {
-            position: relative;
-            width: 90%;
-            max-width: 800px;
-            height: 400px;
-            margin: 40px auto;
-            overflow: hidden;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
+.dna-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    background: rgba(0, 240, 255, 0.15);
+    border: 1px solid var(--cyber-cyan);
+    color: var(--cyber-cyan);
+    letter-spacing: 0.08em;
+    animation: neonBlink 3s infinite;
+}
 
-        .slides {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            transition: transform 1s ease-in-out;
-        }
+@keyframes neonBlink {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(0,240,255,0.6); }
+    50% { opacity: 0.7; box-shadow: 0 0 3px rgba(0,240,255,0.2); }
+}
 
-        .slides img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            flex-shrink: 0;
-        }
+.brand-titles span {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+}
 
-        .greeting {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
+.nav-hologram-links {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 240, 255, 0.04);
+    padding: 4px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(0, 240, 255, 0.12);
+}
 
+.nav-tab-btn {
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.nav-tab-btn:hover, .nav-tab-btn.active {
+    color: #fff;
+    background: rgba(0, 240, 255, 0.16);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.35);
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cyber-glow-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    font-size: 13.5px;
+    font-weight: 700;
+    text-decoration: none;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.3), rgba(157, 78, 221, 0.3));
+    border: 1px solid rgba(0, 240, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+}
+
+.cyber-glow-btn:hover {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.5), rgba(157, 78, 221, 0.5));
+    border-color: #fff;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.55);
+    transform: translateY(-2px) scale(1.03);
+}
+
+.mobile-nav-toggle {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    color: var(--cyber-cyan);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   Hero Cyber Deck & Live HUD
+   ========================================================================== */
+.hero-deck {
+    max-width: 1180px;
+    margin: 32px auto 0;
+    padding: 0 20px;
+}
+
+/* Cyber Status HUD Bar */
+.cyber-hud-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 24px;
+    border-radius: var(--radius-pill);
+    background: rgba(10, 17, 34, 0.6);
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    backdrop-filter: blur(20px);
+    margin-bottom: 28px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.hud-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.dna-signal-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cyber-emerald);
+    box-shadow: 0 0 12px var(--cyber-emerald);
+    animation: signalPulse 1.8s infinite;
+}
+
+@keyframes signalPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.5; }
+}
+
+/* Hero Centerpiece Banner */
+.hero-centerpiece {
+    position: relative;
+    border-radius: 32px;
+    overflow: hidden;
+    padding: 44px 36px;
+    background: linear-gradient(135deg, rgba(13, 22, 45, 0.75) 0%, rgba(6, 11, 25, 0.8) 100%);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    backdrop-filter: blur(30px);
+    box-shadow: 
+        0 25px 50px -10px rgba(0, 0, 0, 0.8),
+        0 0 35px rgba(0, 240, 255, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+.hero-text-side {
+    max-width: 620px;
+}
+
+.hero-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    border-radius: var(--radius-pill);
+    background: rgba(0, 240, 255, 0.12);
+    border: 1px solid var(--cyber-cyan);
+    color: var(--cyber-cyan);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+}
+
+.hero-centerpiece h2 {
+    font-size: 38px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    background: linear-gradient(135deg, #ffffff 40%, var(--cyber-cyan) 80%, var(--cyber-pink) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.hero-centerpiece p {
+    font-size: 15.5px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    line-height: 1.6;
+}
+
+.hero-stats-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.stat-chip {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-num {
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.stat-num span {
+    color: var(--cyber-cyan);
+    font-size: 16px;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.hero-visual-side {
+    position: relative;
+    width: 280px;
+    height: 220px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-hologram-ring {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 2px dashed rgba(0, 240, 255, 0.4);
+    animation: ringRotate 20s linear infinite;
+}
+
+.hero-hologram-ring-2 {
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    border: 1px solid rgba(157, 78, 221, 0.35);
+    animation: ringRotateReverse 25s linear infinite;
+}
+
+@keyframes ringRotate {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes ringRotateReverse {
+    to { transform: rotate(-360deg); }
+}
+
+.hero-floating-logo {
+    width: 140px;
+    height: 140px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 25px rgba(0, 240, 255, 0.6));
+    animation: floatLevitate 4s ease-in-out infinite alternate;
+}
+
+@keyframes floatLevitate {
+    0% { transform: translateY(0) scale(1); }
+    100% { transform: translateY(-12px) scale(1.04); }
+}
+
+/* ==========================================================================
+   Trust & Key Capabilities
+   ========================================================================== */
+.cyber-trust-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.cyber-trust-card {
+    background: rgba(10, 16, 32, 0.65);
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 20px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    backdrop-filter: blur(20px);
+    transition: all 0.3s ease;
+}
+
+.cyber-trust-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--cyber-cyan);
+    box-shadow: 0 10px 25px rgba(0, 240, 255, 0.2);
+    background: rgba(14, 22, 44, 0.8);
+}
+
+.trust-glow-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: rgba(0, 240, 255, 0.12);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    color: var(--cyber-cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+}
+
+.trust-texts h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.trust-texts p {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+/* ==========================================================================
+   Live Search & Filter Neural Hub
+   ========================================================================== */
+.neural-filter-section {
+    max-width: 1180px;
+    margin: 44px auto 0;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.cyber-search-box {
+    position: relative;
+    max-width: 620px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.cyber-search-box input {
+    width: 100%;
+    padding: 15px 24px 15px 54px;
+    border-radius: var(--radius-pill);
+    background: rgba(10, 16, 32, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.28);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    color: #fff;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.5),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.cyber-search-box input:focus {
+    border-color: var(--cyber-cyan);
+    background: rgba(14, 22, 45, 0.85);
+    box-shadow: 
+        0 0 30px rgba(0, 240, 255, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+
+.cyber-search-box input::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.search-beam-icon {
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--cyber-cyan);
+    font-size: 17px;
+    pointer-events: none;
+}
+
+.category-tab-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.cyber-category-pill {
+    padding: 9px 20px;
+    border-radius: var(--radius-pill);
+    background: rgba(10, 16, 32, 0.55);
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    color: var(--text-muted);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(15px);
+    transition: all 0.25s ease;
+}
+
+.cyber-category-pill:hover {
+    color: #fff;
+    border-color: rgba(0, 240, 255, 0.5);
+    background: rgba(0, 240, 255, 0.12);
+}
+
+.cyber-category-pill.active {
+    color: #fff;
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.35), rgba(157, 78, 221, 0.35));
+    border-color: var(--cyber-cyan);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+}
+
+/* ==========================================================================
+   Catalog Section & Products Grid
+   ========================================================================== */
+.catalog-header {
+    text-align: center;
+    max-width: 1180px;
+    margin: 50px auto 26px;
+    padding: 0 20px;
+}
+
+.catalog-header h2 {
+    font-size: 34px;
+    font-weight: 800;
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.02em;
+    background: linear-gradient(180deg, #FFFFFF 30%, rgba(255, 255, 255, 0.75) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.catalog-header p {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.cyber-cards-matrix {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+    gap: 24px;
+}
+
+.cyber-card {
+    background: rgba(10, 16, 34, 0.65);
+    backdrop-filter: var(--card-blur);
+    -webkit-backdrop-filter: var(--card-blur);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: var(--radius-card);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    box-shadow: 
+        0 20px 40px -15px rgba(0, 0, 0, 0.75),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.35s ease, box-shadow 0.35s ease;
+    overflow: hidden;
+}
+
+.cyber-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-card);
+    padding: 1.5px;
+    background: linear-gradient(135deg, transparent, rgba(0, 240, 255, 0.6), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.cyber-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    border-color: rgba(0, 240, 255, 0.6);
+    box-shadow: 
+        0 25px 60px -10px rgba(0, 0, 0, 0.9),
+        0 0 30px rgba(0, 240, 255, 0.35),
+        inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+.cyber-card:hover::after {
+    opacity: 1;
+}
+
+.card-top-tag {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: rgba(0, 255, 170, 0.15);
+    border: 1px solid var(--cyber-emerald);
+    color: var(--cyber-emerald);
+}
+
+.card-top-tag.hot {
+    background: rgba(255, 42, 133, 0.18);
+    border-color: var(--cyber-pink);
+    color: #ff66b2;
+}
+
+.card-hologram-frame {
+    width: 150px;
+    height: 150px;
+    margin: 8px 0 16px;
+    border-radius: 22px;
+    background: radial-gradient(circle at 50% 40%, rgba(0, 240, 255, 0.15), rgba(10, 16, 32, 0.4));
+    border: 1px solid rgba(0, 240, 255, 0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    transition: transform 0.3s ease;
+}
+
+.cyber-card:hover .card-hologram-frame {
+    transform: scale(1.08) rotate(1deg);
+    border-color: var(--cyber-cyan);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+}
+
+.card-hologram-frame img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+}
+
+.card-app-title {
+    font-size: 17.5px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+}
+
+.card-feature-specs {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.cyber-price-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    background: rgba(0, 240, 255, 0.12);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    color: var(--cyber-cyan);
+    font-weight: 800;
+    font-size: 18px;
+    font-family: 'Space Grotesk', sans-serif;
+    margin-bottom: 18px;
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+}
+
+.cyber-price-pill span {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.card-action-wrap {
+    width: 100%;
+}
+
+.cyber-buy-action {
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(135deg, var(--cyber-cyan) 0%, #0099ff 100%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    color: #040711;
+    font-weight: 800;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 
+        0 10px 25px rgba(0, 240, 255, 0.45),
+        inset 0 1px 1px #fff;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.cyber-buy-action:hover {
+    background: linear-gradient(135deg, #00ffaa 0%, var(--cyber-cyan) 100%);
+    box-shadow: 
+        0 12px 30px rgba(0, 255, 170, 0.55),
+        inset 0 1px 1px #fff;
+    transform: scale(1.03);
+}
+
+.cyber-buy-action:active {
+    transform: scale(0.97);
+}
+
+/* ==========================================================================
+   Payment Matrix
+   ========================================================================== */
+.payment-matrix-strip {
+    max-width: 1180px;
+    margin: 20px auto 40px;
+    padding: 26px 32px;
+    border-radius: 28px;
+    background: rgba(10, 16, 32, 0.65);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    backdrop-filter: blur(24px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 18px;
+}
+
+.payment-matrix-strip h3 {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bank-capsules-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.bank-cyber-chip {
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    background: rgba(0, 240, 255, 0.06);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    transition: all 0.25s ease;
+}
+
+.bank-cyber-chip:hover {
+    transform: translateY(-3px) scale(1.05);
+    border-color: var(--cyber-cyan);
+    box-shadow: 0 0 18px rgba(0, 240, 255, 0.35);
+}
+
+.bank-cyber-chip img {
+    height: 24px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+/* ==========================================================================
+   Cyber Floating Footer
+   ========================================================================== */
+.cyber-footer {
+    max-width: 1180px;
+    margin: 40px auto 30px;
+    padding: 34px 24px;
+    border-radius: 28px;
+    background: rgba(8, 14, 28, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    backdrop-filter: blur(24px);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
+.footer-cyber-tg-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 28px;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(135deg, rgba(0, 136, 204, 0.7), rgba(0, 240, 255, 0.5));
+    border: 1px solid rgba(0, 240, 255, 0.6);
+    color: #fff;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 800;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.35), inset 0 1px 1px #fff;
+    transition: all 0.25s ease;
+}
+
+.footer-cyber-tg-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 0 35px rgba(0, 240, 255, 0.7), inset 0 1px 1px #fff;
+}
+
+/* Scroll Up Button */
+#cyberScrollTop {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(10, 17, 34, 0.85);
+    border: 1px solid var(--cyber-cyan);
+    color: var(--cyber-cyan);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 999;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+    transition: all 0.25s ease;
+}
+
+#cyberScrollTop:hover {
+    background: var(--cyber-cyan);
+    color: #040711;
+    transform: translateY(-4px);
+}
+
+/* Preloader */
+#cyber-preloader {
+    position: fixed;
+    inset: 0;
+    background: #040711;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.dna-loader-core {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid rgba(0, 240, 255, 0.15);
+    border-top-color: var(--cyber-cyan);
+    border-right-color: var(--cyber-pink);
+    animation: dnaSpin 0.8s linear infinite;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+}
+
+@keyframes dnaSpin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 860px) {
+    .nav-hologram-links {
+        display: none;
+    }
+    .mobile-nav-toggle {
+        display: flex;
+    }
+    .hero-centerpiece {
+        flex-direction: column;
+        padding: 30px 20px;
+        text-align: center;
+    }
+    .hero-stats-row {
+        justify-content: center;
+    }
+    .hero-visual-side {
+        width: 100%;
+        height: 180px;
+    }
+}

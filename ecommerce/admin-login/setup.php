@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$dbname = "admin_db";
+$dbname = "ecommerce";
 
 echo '<link rel="icon" href="../img/logome.png" type="image/x-icon">';
 echo '<link rel="apple-touch-icon" href="../img/logome.png">';

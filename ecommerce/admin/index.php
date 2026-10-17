@@ -1,280 +1,218 @@
 <?php
 include '../api/db.php';
-$sql = "SELECT * FROM products";
+$sql = "SELECT * FROM products ORDER BY id DESC";
 $result = $conn->query($sql);
 ?>
-
 <!DOCTYPE html>
 <html lang="km">
 
 <head>
     <meta charset="UTF-8">
-    <title>គ្រប់គ្រងព័ត៏មានកម្មវិធី</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>គ្រប់គ្រងព័ត៏មានកម្មវិធី • Admin Dashboard • iOS 27 Liquid Glass</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" href="../home/logo/logome.png" type="image/x-icon">
-    <link rel="apple-touch-icon" href="../home/logo/logome.png">
+    <link rel="stylesheet" href="../home/page.css">
     <style>
-        :root {
-            --primary-color: #4f8cff;
-            --success-color: #0ad114;
-            --warning-color: #ce6007;
-            --danger-color: #ff0000;
-            --text-color: #333;
-            --light-bg: rgba(255, 255, 255, 0.9);
+        .admin-dashboard-container {
+            max-width: 1140px;
+            margin: 40px auto 60px;
+            padding: 0 20px;
         }
 
-        body {
-            background-image: url('../home/logo/logome.png');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-            background-position: center;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            color: var(--text-color);
-            min-height: 100vh;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #fff;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-            opacity: 0;
-            transform: translateY(-20px);
-            animation: fadeInDown 0.5s ease-out forwards;
-        }
-
-        .action-buttons {
+        .admin-header-glass {
+            background: rgba(18, 24, 42, 0.75);
+            backdrop-filter: blur(35px) saturate(220%);
+            -webkit-backdrop-filter: blur(35px) saturate(220%);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 28px;
+            padding: 24px 30px;
+            margin-bottom: 24px;
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            align-items: center;
+            justify-content: space-between;
             flex-wrap: wrap;
-            opacity: 0;
-            transform: translateY(-20px);
-            animation: fadeInDown 0.5s ease-out 0.2s forwards;
+            gap: 16px;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 20px 40px rgba(0, 0, 0, 0.5);
         }
 
-        .btn {
-            display: inline-block;
-            padding: 10px 24px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s;
-            color: white;
-            text-align: center;
-            border: 2px solid transparent;
-        }
-
-        .btn-add {
-            background-color: var(--success-color);
-        }
-
-        .btn-messages {
-            background-color: var(--warning-color);
-        }
-
-        .btn-back {
-            background-color: var(--danger-color);
-        }
-
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        .admin-table-glass {
+            width: 100%;
+            background: rgba(18, 24, 42, 0.68);
+            backdrop-filter: blur(35px) saturate(220%);
+            -webkit-backdrop-filter: blur(35px) saturate(220%);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 30px 60px -10px rgba(0, 0, 0, 0.65);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            background-color: var(--light-bg);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
-            overflow: hidden;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 0.5s ease-out 0.4s forwards;
+            text-align: left;
         }
 
-        th,
-        td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+        thead {
+            background: rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.16);
         }
 
         th {
-            background-color: var(--primary-color);
-            color: white;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
+            padding: 16px 20px;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #00f2fe;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        tr:nth-child(even) {
-            background-color: rgba(0, 0, 0, 0.02);
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 14px;
+            vertical-align: middle;
         }
 
-        tr:hover {
-            background-color: rgba(0, 0, 0, 0.05);
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .app-icon-img {
-            width: 40px;
-            height: 40px;
-            object-fit: contain;
-            border-radius: 8px;
-            transition: transform 0.3s;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.08);
         }
 
-        .app-icon-img:hover {
-            transform: scale(1.5);
-        }
-
-        .action-cell {
-            display: flex;
-            gap: 8px;
+        .btn-table {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 12.5px;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
         }
 
         .btn-edit {
-            background-color: orange;
-            padding: 6px 12px;
-            font-size: 14px;
+            background: rgba(0, 242, 254, 0.15);
+            border-color: rgba(0, 242, 254, 0.4);
+            color: #00f2fe;
+        }
+
+        .btn-edit:hover {
+            background: rgba(0, 242, 254, 0.3);
+            transform: translateY(-2px);
         }
 
         .btn-delete {
-            background-color: var(--danger-color);
-            padding: 6px 12px;
-            font-size: 14px;
+            background: rgba(255, 68, 68, 0.15);
+            border-color: rgba(255, 68, 68, 0.4);
+            color: #ff5555;
+            margin-left: 6px;
         }
 
-        .no-data {
-            text-align: center;
-            padding: 20px;
-            font-style: italic;
-            color: #666;
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        tbody tr {
-            opacity: 0;
-            transform: translateX(-20px);
-            transition: all 0.4s ease-out;
-        }
-
-        tbody tr.visible {
-            opacity: 1;
-            transform: translateX(0);
+        .btn-delete:hover {
+            background: rgba(255, 68, 68, 0.3);
+            transform: translateY(-2px);
         }
     </style>
 </head>
 
 <body>
-    <h1>គ្រប់គ្រងព័ត៏មានកម្មវិធី</h1>
-
-    <div class="action-buttons">
-        <a class="btn btn-add" href="add-product.php">+ បន្ថែមកម្មវិធី</a>
-        <a class="btn btn-messages" href="../customer-service/dashboard.php">មើលសាររបស់អតិថិជន</a>
-        <a class="btn btn-back" href="../admin-login/logout.php">ចាក់ចេញ</a>
+    <!-- Background Aurora -->
+    <div class="liquid-aurora-bg">
+        <div class="liquid-orb orb-1"></div>
+        <div class="liquid-orb orb-2"></div>
+        <div class="liquid-orb orb-3"></div>
+        <div class="liquid-noise-overlay"></div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ល.រ</th>
-                <th>ឈ្មោះកម្មវិធី</th>
-                <th>ព័ត៏មាន</th>
-                <th>តម្លៃ</th>
-                <th>កម្មវិធី</th>
-                <th>កែប្រែ</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if ($result->num_rows > 0): ?>
-                <?php while ($row = $result->fetch_assoc()): ?>
+    <div class="admin-dashboard-container">
+        <!-- Top bar -->
+        <div class="admin-header-glass">
+            <div>
+                <span class="section-tag"><i class="fas fa-shield-alt"></i> Control Center</span>
+                <h2 style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 4px;">គ្រប់គ្រងព័ត៏មានកម្មវិធី (Products)</h2>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="add-product.php" class="ios-glass-btn btn-aurora">
+                    <i class="fas fa-plus"></i> + បន្ថែមកម្មវិធីថ្មី
+                </a>
+                <a href="../customer-service/dashboard.php" class="ios-glass-btn">
+                    <i class="fas fa-comments"></i> មើលសារអតិថិជន
+                </a>
+                <a href="../home/index.php" class="ios-glass-btn">
+                    <i class="fas fa-external-link-alt"></i> មើលទំព័រមុខ
+                </a>
+                <a href="../admin-login/logout.php" class="ios-glass-btn" style="border-color: rgba(255,75,75,0.4); color: #ff6b6b;">
+                    <i class="fas fa-sign-out-alt"></i> ចាកចេញ
+                </a>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="admin-table-glass">
+            <table>
+                <thead>
                     <tr>
-                        <td><?= $row['id'] ?></td>
-                        <td><?= htmlspecialchars($row['name']) ?></td>
-                        <td><?= htmlspecialchars($row['description']) ?></td>
-                        <td>$<?= number_format($row['price'], 2) ?></td>
-                        <td>
-                            <?php if (!empty($row['image'])): ?>
-                                <img src="../<?= htmlspecialchars($row['image']) ?>" class="app-icon-img" alt="<?= htmlspecialchars($row['name']) ?>">
-                            <?php else: ?>
-                                <div style="width:40px; height:40px; background:#eee; border-radius:8px;"></div>
-                            <?php endif; ?>
-                        </td>
-                        <td class="action-cell">
-                            <a class="btn btn-edit" href="edit-product.php?id=<?= $row['id'] ?>">កែសម្រួល</a>
-                            <a class="btn btn-delete" href="delete-product.php?id=<?= $row['id'] ?>" onclick="return confirm('តើអ្នកចង់លុបកម្មវីធីនេះមែនឬ?')">លុប</a>
-                        </td>
+                        <th style="width: 60px;">ល.រ</th>
+                        <th style="width: 80px;">រូបភាព</th>
+                        <th>ឈ្មោះកម្មវិធី</th>
+                        <th>ព័ត៌មានលម្អិត</th>
+                        <th>តម្លៃ</th>
+                        <th style="width: 180px; text-align: center;">សកម្មភាព</th>
                     </tr>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="6" class="no-data">No products found</td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const rows = document.querySelectorAll('tbody tr');
-
-            function checkVisibility() {
-                rows.forEach((row, index) => {
-                    const rowTop = row.getBoundingClientRect().top;
-                    const windowHeight = window.innerHeight;
-
-                    if (rowTop < windowHeight * 0.8) {
-                        setTimeout(() => {
-                            row.classList.add('visible');
-                        }, index * 100);
-                    }
-                });
-            }
-            checkVisibility();
-            window.addEventListener('scroll', checkVisibility);
-            const buttons = document.querySelectorAll('.btn');
-            buttons.forEach(btn => {
-                btn.addEventListener('mouseenter', () => {
-                    btn.style.transform = 'translateY(-3px)';
-                    btn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                });
-
-                btn.addEventListener('mouseleave', () => {
-                    btn.style.transform = 'translateY(0)';
-                    btn.style.boxShadow = 'none';
-                });
-            });
-        });
-    </script>
+                </thead>
+                <tbody>
+                    <?php if ($result && $result->num_rows > 0): ?>
+                        <?php while ($row = $result->fetch_assoc()): ?>
+                            <tr>
+                                <td style="font-weight: 700; color: #00f2fe;"><?= $row['id'] ?></td>
+                                <td>
+                                    <?php if (!empty($row['image'])): ?>
+                                        <img src="../<?= htmlspecialchars($row['image']) ?>" class="app-icon-img" alt="<?= htmlspecialchars($row['name']) ?>">
+                                    <?php else: ?>
+                                        <div class="app-icon-img" style="display:flex;align-items:center;justify-content:center;color:#666;">
+                                            <i class="fas fa-image"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="font-weight: 700; color: #fff;"><?= htmlspecialchars($row['name']) ?></td>
+                                <td style="color: var(--text-muted); font-size: 13px;"><?= htmlspecialchars($row['description'] ?? '') ?></td>
+                                <td>
+                                    <span style="display:inline-block; padding: 4px 10px; border-radius: 9999px; background: rgba(0,245,160,0.15); border: 1px solid rgba(0,245,160,0.3); color: #00f5a0; font-weight: 700;">
+                                        $<?= number_format($row['price'], 2) ?>
+                                    </span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a class="btn-table btn-edit" href="edit-product.php?id=<?= $row['id'] ?>">
+                                        <i class="fas fa-pen"></i> កែប្រែ
+                                    </a>
+                                    <a class="btn-table btn-delete" href="delete-product.php?id=<?= $row['id'] ?>" onclick="return confirm('តើអ្នកចង់លុបកម្មវីធីនេះមែនឬ?')">
+                                        <i class="fas fa-trash"></i> លុប
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                មិនទាន់មានទិន្នន័យកម្មវិធីនៅឡើយទេ (No products found)
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </body>
 
 </html>

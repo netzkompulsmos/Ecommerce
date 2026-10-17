@@ -1,90 +1,170 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Generation Time: Jul 16, 2025 at 11:18 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Database: `ecommerce`
+-- Unified All-in-One Database
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
-
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
---
--- Database: `ecommerce`
---
+CREATE DATABASE IF NOT EXISTS `ecommerce` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `ecommerce`;
 
 -- --------------------------------------------------------
+-- Drop existing tables to ensure clean schema update
+-- --------------------------------------------------------
 
---
+DROP TABLE IF EXISTS `account_sessions`;
+DROP TABLE IF EXISTS `account`;
+DROP TABLE IF EXISTS `admins`;
+DROP TABLE IF EXISTS `audit_logs`;
+DROP TABLE IF EXISTS `system_settings`;
+DROP TABLE IF EXISTS `login`;
+DROP TABLE IF EXISTS `messages`;
+DROP TABLE IF EXISTS `products`;
+DROP TABLE IF EXISTS `users`;
+
+-- --------------------------------------------------------
 -- Table structure for table `account`
---
+-- --------------------------------------------------------
 
 CREATE TABLE `account` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `google_id` varchar(255) DEFAULT NULL,
   `name` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
   `profile_picture` varchar(255) DEFAULT NULL,
   `bio` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `google_id` (`google_id`),
+  KEY `idx_email` (`email`),
+  KEY `idx_google_id` (`google_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
-
---
 -- Table structure for table `account_sessions`
---
+-- --------------------------------------------------------
 
 CREATE TABLE `account_sessions` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `account_id` int(11) NOT NULL,
   `session_token` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `expires_at` datetime NOT NULL
+  `expires_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `account_id` (`account_id`),
+  KEY `idx_session_token` (`session_token`),
+  KEY `idx_expires_at` (`expires_at`),
+  CONSTRAINT `account_sessions_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
+-- Table structure for table `admins`
+-- --------------------------------------------------------
 
---
+CREATE TABLE `admins` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(100) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `admins` (`id`, `username`, `password`) VALUES
+(154, 'netsmos100', '$2y$10$irn4aO/mzBkAuGRK.fnYwuVT4yI8rcBXUuX.7Qxs.eKhVYBsx95bO');
+
+-- --------------------------------------------------------
+-- Table structure for table `audit_logs`
+-- --------------------------------------------------------
+
+CREATE TABLE `audit_logs` (
+  `log_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `action` varchar(50) NOT NULL,
+  `table_name` varchar(50) DEFAULT NULL,
+  `record_id` int(11) DEFAULT NULL,
+  `old_values` text DEFAULT NULL,
+  `new_values` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`log_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `system_settings`
+-- --------------------------------------------------------
+
+CREATE TABLE `system_settings` (
+  `setting_id` int(11) NOT NULL AUTO_INCREMENT,
+  `setting_name` varchar(50) NOT NULL,
+  `setting_value` text NOT NULL,
+  `description` text DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`setting_id`),
+  UNIQUE KEY `setting_name` (`setting_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Table structure for table `login`
---
+-- --------------------------------------------------------
 
 CREATE TABLE `login` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `google_id` varchar(255) NOT NULL,
   `name` varchar(255) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `picture` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `google_id` (`google_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Table structure for table `messages`
+-- --------------------------------------------------------
 
---
+CREATE TABLE `messages` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `message` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `messages` (`id`, `name`, `email`, `message`, `created_at`) VALUES
+(1, 'NHOR NETH', 'nhorneth1@gmail.com', 'good website', '2025-07-01 07:36:05'),
+(2, 'NHOR NETH', 'nhorneth1@gmail.com', 'good website', '2025-07-01 07:39:01'),
+(3, 'NHOR NETH', 'nhorneth1@gmail.com', 'good website', '2025-07-01 07:43:35'),
+(4, 'NHOR NETH', 'nhorneth1@gmail.com', 'good website', '2025-07-01 07:46:14'),
+(5, 'Muzik', 'plobplub@gmail.com', 'good', '2025-07-01 07:47:18'),
+(6, 'Muzik', 'plobplub@gmail.com', 'good', '2025-07-01 07:58:44'),
+(7, 'Neth Gaming', 'nhorneth1@gmail.com', 'help me', '2025-07-01 07:59:40'),
+(8, 'NHOR NETH', 'nhorneth1@gmail.com', 'i love you', '2025-07-01 08:00:22'),
+(9, 'NHOR NETH', 'nhorneth1@gmail.com', 'help me', '2025-07-01 08:00:43'),
+(20, 'Muzik', 'plobplub@gmail.com', 'help me your website this is cool', '2025-07-15 07:02:33'),
+(21, 'Muzik', 'plobplub@gmail.com', 'hello ', '2025-07-15 10:00:59');
+
+-- --------------------------------------------------------
 -- Table structure for table `products`
---
+-- --------------------------------------------------------
 
 CREATE TABLE `products` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `products`
---
 
 INSERT INTO `products` (`id`, `name`, `description`, `price`, `image`, `created_at`) VALUES
 (7, 'CAPCUT STANDARD', 'new version', 6.99, 'img/products/icon_6875e94aa88cc3.21060813.jpg', '2025-07-14 04:56:44'),
@@ -95,109 +175,36 @@ INSERT INTO `products` (`id`, `name`, `description`, `price`, `image`, `created_
 (16, 'Alight Motion Premium', 'new', 8.00, 'img/products/icon_68776803df79a3.67737119.jpg', '2025-07-16 08:51:15');
 
 -- --------------------------------------------------------
-
---
 -- Table structure for table `users`
---
+-- --------------------------------------------------------
 
 CREATE TABLE `users` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(100) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
   `google_id` varchar(255) DEFAULT NULL,
   `name` varchar(100) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
   `profile_picture` varchar(255) DEFAULT NULL,
   `bio` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Indexes for dumped tables
---
+INSERT INTO `users` (`id`, `username`, `password`) VALUES
+(1, 'nhorneth1@gmail.com', '$2y$10$6DfHhdv3yIRXZ.PmpgcLqueMQ7I/.KVnjf8AnC2Q0F8FFz6lTXdpy'),
+(2, 'yyou19492@gmail.com', '$2y$10$03RDoY4pHozM5bnKQ88GheS34fKmB62od.GFFGYC8.8aAj/QA1F8.'),
+(3, 'aicheat184@gmail.com', '$2y$10$njm0CQKwahl8iGXe4uYWQ.Hhs9Z/rtsBmuNoMGwvIX.SROCcJootS'),
+(4, 'phaklovgaming@gmail.com', '$2y$10$ih7.vXLO3cfH9bOF3GgZ6ua8kVq2pa9r3Dy6aWQNXWxpLjlYcoCYi'),
+(5, 'nethnhor1@gmail.com', '$2y$10$zKde3eEpMuPpwJ2L6ELFc.2nPCWoKL6MBTC8TEA9JABFF/K7PMa2O'),
+(6, 'netsmos100', '$2y$10$.nIOKRxLoo5ZnslrlwIFH.YLo5nJsTGMGHhEzkI.MKziIorHpCvIi'),
+(7, 'net', '$2y$10$EqQnn.Cx.msTVQvLdJ2/Zup5a6/P1n0ZsPJoAOzZe8/KZ0XYrSNfa'),
+(8, 'plo', '$2y$10$ATi3OvtcvDw2t4yeg1u3iuK299VyFkuNyp2Szu19KaeKhCFmC4zhy'),
+(9, 'plobplub@gmail.com', '$2y$10$uBG4f5VMByUvZGUD9Vi9gOVJZM197ndGa9QDl.WLqmRnIMKixBpEC'),
+(10, 'plobplub11@gmail.com', '$2y$10$9D72cEGC7mx3QSVFlL/e1.VScrg5r9jh.rfUMVmKIFb02A3UHbCQe');
 
---
--- Indexes for table `account`
---
-ALTER TABLE `account`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`),
-  ADD UNIQUE KEY `google_id` (`google_id`),
-  ADD KEY `idx_email` (`email`),
-  ADD KEY `idx_google_id` (`google_id`);
-
---
--- Indexes for table `account_sessions`
---
-ALTER TABLE `account_sessions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `account_id` (`account_id`),
-  ADD KEY `idx_session_token` (`session_token`),
-  ADD KEY `idx_expires_at` (`expires_at`);
-
---
--- Indexes for table `login`
---
-ALTER TABLE `login`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `google_id` (`google_id`);
-
---
--- Indexes for table `products`
---
-ALTER TABLE `products`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `google_id` (`google_id`),
-  ADD UNIQUE KEY `email` (`email`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `account`
---
-ALTER TABLE `account`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `account_sessions`
---
-ALTER TABLE `account_sessions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `login`
---
-ALTER TABLE `login`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `products`
---
-ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `account_sessions`
---
-ALTER TABLE `account_sessions`
-  ADD CONSTRAINT `account_sessions_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
