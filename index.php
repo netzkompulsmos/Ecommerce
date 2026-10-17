@@ -1,3 +1,3 @@
 <?php
-header("Location: ecommerce/home/index.php");
+header("Location: home/index.php");
 exit;
