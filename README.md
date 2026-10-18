@@ -1,4 +1,4 @@
-# NET - ECOMMERCE
+# ECOMMERCE
 
 Welcome to the **OUR** Web Application!  
 This platform allows users to buy and sell gaming accounts easily and securely.
