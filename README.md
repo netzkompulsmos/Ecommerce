@@ -44,6 +44,10 @@ Telegram_chat_id=YOUR_CHAT_ID
 
 Order notifications contain the product name, price, customer name, phone number, location, and uploaded payment receipt (JPG, PNG, WEBP, or PDF up to 5 MB). Receipt files are sent to Telegram and are not stored by the application. Never request or send account passwords or two-factor authentication codes. Keep `.env` private and do not commit it.
 
+### Product inventory
+
+Products have a non-negative stock amount managed from the admin dashboard. Inventory is reduced by one after an order is accepted by Telegram, and products with zero stock are hidden from the storefront and cannot be ordered. The admin dashboard warns when stock is 5 or fewer. The stock column is added automatically when the site is opened; existing products start at 0 and must be given their actual stock amount in the admin dashboard before they appear for sale.
+
 ## Start local server (example using XAMPP or similar):
 Place in htdocs
 Access via http://localhost/net-account-seller

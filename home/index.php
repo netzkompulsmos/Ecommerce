@@ -42,8 +42,12 @@ if ($is_checkout) {
     $product = null;
     if ($item !== '' && ctype_digit((string) $item)) {
         include_once '../api/db.php';
+        if (isset($conn) && !$conn->connect_error && !ensureProductStockColumn($conn)) {
+            http_response_code(500);
+            exit('Product inventory is temporarily unavailable.');
+        }
         if (isset($conn) && !$conn->connect_error) {
-            $stmt = $conn->prepare("SELECT * FROM products WHERE id = ?");
+            $stmt = $conn->prepare("SELECT * FROM products WHERE id = ? AND stock > 0");
             if ($stmt) {
                 $stmt->bind_param("i", $item);
                 $stmt->execute();
@@ -61,6 +65,11 @@ if ($is_checkout) {
                 $stmt->close();
             }
         }
+    }
+
+    if (!$product && $item !== '') {
+        http_response_code(404);
+        exit('This product is out of stock or no longer available.');
     }
 
     if (!$product) {
@@ -731,7 +740,7 @@ if ($page === 'about' && !$is_checkout) {
                     </div>
                     <h2>គុណភាពខ្ពស់ 100%</h2>
                     <p>
-                        ប្រព័ន្ធទិញ-លក់គណនីឌីជីថលលំដាប់ខ្ពស់ប្រកបដោយសុវត្ថិភាព ធានាជូនពេញមួយខែ និងគាំទ្រការទូទាត់គ្រប់ធនាគារក្នុងប្រទេសកម្ពុជា។
+                        ទិញ-លក់ផលិតផល​ ប្រកបដោយសុវត្ថិភាព មានការធានាជូន និងគាំទ្រការទូទាត់គ្រប់ធនាគារក្នុងប្រទេសកម្ពុជា។
                     </p>
                     <div class="hero-stats-row">
                         <div class="stat-chip">
@@ -767,8 +776,12 @@ if ($page === 'about' && !$is_checkout) {
         <div class="cyber-cards-matrix" id="productsCatalogMatrix">
             <?php
             include '../api/db.php';
+            if (isset($conn) && !$conn->connect_error && !ensureProductStockColumn($conn)) {
+                http_response_code(500);
+                exit('Product inventory is temporarily unavailable.');
+            }
             if (isset($conn) && !$conn->connect_error) {
-                $db_result = $conn->query("SELECT * FROM products ORDER BY id DESC");
+                $db_result = $conn->query("SELECT * FROM products WHERE stock > 0 ORDER BY id DESC");
                 if ($db_result && $db_result->num_rows > 0) {
                     while ($p = $db_result->fetch_assoc()) {
                         $p_name = htmlspecialchars($p['name']);

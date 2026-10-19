@@ -243,15 +243,6 @@
                 echo '<div class="alert-cyber alert-error"><i class="fas fa-triangle-exclamation"></i> មានបញ្ហាក្នុងការបញ្ជូនសារ សូមព្យាយាមម្តងទៀត។</div>';
             }
             ?>
-
-            <div class="support-direct-contact" style="text-align: center; border-top: 1px solid rgba(0,240,255,0.15); padding-top: 18px;">
-                <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 10px;">
-                    ឬទាក់ទងមក Admin ផ្ទាល់ 24/7៖
-                </p>
-                <a href="https://t.me/netisnet" target="_blank" rel="noopener noreferrer" class="cyber-glow-btn" style="width: 100%; padding: 11px; justify-content: center;">
-                    <i class="fab fa-telegram-plane"></i> Telegram Support (@netisnet)
-                </a>
-            </div>
             </div>
         </div>
     </div>

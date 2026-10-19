@@ -1,6 +1,13 @@
 <?php
 include '../api/db.php';
 
+const LOW_STOCK_THRESHOLD = 5;
+
+if (!ensureProductStockColumn($conn)) {
+    http_response_code(500);
+    exit('Could not prepare the product stock schema. Check the server error log.');
+}
+
 $action = $_POST['action'] ?? $_GET['action'] ?? 'list';
 $validActions = ['list', 'add', 'edit', 'delete'];
 if (!in_array($action, $validActions, true)) {
@@ -47,9 +54,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === '
     $name = trim($_POST['name'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $priceInput = $_POST['price'] ?? '';
+    $stockInput = $_POST['stock'] ?? '';
+    $stockDigits = is_string($stockInput) && preg_match('/^\d+$/D', $stockInput) ? ltrim($stockInput, '0') : false;
+    $stock = $stockDigits === false
+        ? false
+        : filter_var($stockDigits === '' ? '0' : $stockDigits, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 2147483647]]);
 
-    if ($name === '' || $description === '' || !is_numeric($priceInput) || (float) $priceInput < 0) {
-        $error_msg = 'Please provide a name, description, and valid non-negative price.';
+    if ($name === '' || $description === '' || !is_numeric($priceInput) || (float) $priceInput < 0 || $stock === false) {
+        $error_msg = 'Please provide a name, description, valid non-negative price, and whole-number stock amount.';
     }
 
     $imagePath = $action === 'edit' ? $product['image'] : '';
@@ -126,13 +138,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === '
 
     if ($error_msg === '') {
         if ($action === 'add') {
-            $stmt = $conn->prepare('INSERT INTO products (name, description, price, image) VALUES (?, ?, ?, ?)');
+            $stmt = $conn->prepare('INSERT INTO products (name, description, price, image, stock) VALUES (?, ?, ?, ?, ?)');
             $price = (float) $priceInput;
-            $stmt->bind_param('ssds', $name, $description, $price, $imagePath);
+            $stmt->bind_param('ssdsi', $name, $description, $price, $imagePath, $stock);
         } else {
-            $stmt = $conn->prepare('UPDATE products SET name = ?, description = ?, price = ?, image = ? WHERE id = ?');
+            $stmt = $conn->prepare('UPDATE products SET name = ?, description = ?, price = ?, image = ?, stock = ? WHERE id = ?');
             $price = (float) $priceInput;
-            $stmt->bind_param('ssdsi', $name, $description, $price, $imagePath, $id);
+            $stmt->bind_param('ssdsii', $name, $description, $price, $imagePath, $stock, $id);
         }
 
         if ($stmt->execute()) {
@@ -163,11 +175,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === '
         $product['name'] = $_POST['name'] ?? $name;
         $product['description'] = $_POST['description'] ?? $description;
         $product['price'] = $priceInput;
+        $product['stock'] = $stockInput;
         $product['image'] = $uploadedImagePath !== '' ? ($product['image'] ?? '') : $imagePath;
     }
 }
 
 $result = $conn->query('SELECT * FROM products ORDER BY id DESC');
+$lowStockResult = $conn->query('SELECT name, stock FROM products WHERE stock <= ' . LOW_STOCK_THRESHOLD . ' ORDER BY stock ASC, name ASC');
+if (!$result || !$lowStockResult) {
+    http_response_code(500);
+    exit('Could not load product inventory: ' . htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8'));
+}
 ?>
 <!DOCTYPE html>
 <html lang="km">
@@ -572,6 +590,54 @@ $result = $conn->query('SELECT * FROM products ORDER BY id DESC');
             text-align: center;
         }
 
+        .inventory-alert {
+            margin-bottom: 20px;
+            padding: 16px 20px;
+            border: 1px solid rgba(245, 158, 11, 0.55);
+            border-radius: 18px;
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+        }
+
+        .inventory-alert h3 {
+            margin-bottom: 8px;
+            color: #fcd34d;
+            font-size: 16px;
+        }
+
+        .inventory-alert ul {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+        }
+
+        .stock-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 9999px;
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .stock-badge.is-low,
+        .stock-badge.is-empty {
+            border-color: rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+        }
+
+        .stock-badge.is-empty {
+            border-color: rgba(248, 113, 113, 0.45);
+            background: rgba(248, 113, 113, 0.12);
+            color: #fca5a5;
+        }
+
         @keyframes overlay-fade-in {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -690,6 +756,11 @@ $result = $conn->query('SELECT * FROM products ORDER BY id DESC');
                         <input type="number" step="0.01" min="0" name="price" class="cyber-input" value="<?= htmlspecialchars((string) ($_POST['price'] ?? $product['price'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
                     </div>
                     <div class="form-group">
+                        <label><i class="fas fa-boxes-stacked" style="color: var(--cyber-amber); margin-right: 6px;"></i> ចំនួនស្តុក (Stock amount)</label>
+                        <input type="number" step="1" min="0" max="2147483647" name="stock" class="cyber-input" value="<?= htmlspecialchars((string) ($_POST['stock'] ?? $product['stock'] ?? '0'), ENT_QUOTES, 'UTF-8') ?>" required>
+                        <div class="image-url-hint">Set to 0 to hide this product from the storefront. Low-stock alert at <?= LOW_STOCK_THRESHOLD ?> or fewer.</div>
+                    </div>
+                    <div class="form-group">
                         <label><i class="fas fa-image" style="color: var(--cyber-pink); margin-right: 6px;"></i> រូបភាពតំណាងកម្មវិធី (App Icon)</label>
                         <?php if ($isEditing && !empty($product['image'])): ?>
                             <div class="current-app-preview">
@@ -772,6 +843,20 @@ $result = $conn->query('SELECT * FROM products ORDER BY id DESC');
             </div>
         </div>
 
+        <?php if ($lowStockResult->num_rows > 0): ?>
+            <section class="inventory-alert" role="status">
+                <h3><i class="fas fa-triangle-exclamation"></i> Low stock alert — <?= $lowStockResult->num_rows ?> product(s) need attention</h3>
+                <ul>
+                    <?php while ($lowStockProduct = $lowStockResult->fetch_assoc()): ?>
+                        <li>
+                            <?= htmlspecialchars($lowStockProduct['name'], ENT_QUOTES, 'UTF-8') ?>:
+                            <?= (int) $lowStockProduct['stock'] === 0 ? 'OUT OF STOCK' : (int) $lowStockProduct['stock'] . ' left' ?>
+                        </li>
+                    <?php endwhile; ?>
+                </ul>
+            </section>
+        <?php endif; ?>
+
         <!-- Table -->
         <div class="admin-table-glass">
             <table>
@@ -782,6 +867,7 @@ $result = $conn->query('SELECT * FROM products ORDER BY id DESC');
                         <th>ឈ្មោះកម្មវិធី</th>
                         <th>ព័ត៌មានលម្អិត</th>
                         <th>តម្លៃ</th>
+                        <th>ស្តុក (Stock)</th>
                         <th style="width: 180px; text-align: center;">សកម្មភាព</th>
                     </tr>
                 </thead>
@@ -806,6 +892,15 @@ $result = $conn->query('SELECT * FROM products ORDER BY id DESC');
                                         $<?= number_format($row['price'], 2) ?>
                                     </span>
                                 </td>
+                                <td>
+                                    <?php
+                                    $stockAmount = (int) $row['stock'];
+                                    $stockClass = $stockAmount === 0 ? 'is-empty' : ($stockAmount <= LOW_STOCK_THRESHOLD ? 'is-low' : '');
+                                    ?>
+                                    <span class="stock-badge <?= $stockClass ?>">
+                                        <?= $stockAmount === 0 ? 'OUT OF STOCK' : $stockAmount ?>
+                                    </span>
+                                </td>
                                 <td style="text-align: center;">
                                     <a class="btn-table btn-edit" href="index.php?action=edit&amp;id=<?= (int) $row['id'] ?>">
                                         <i class="fas fa-pen"></i> កែប្រែ
@@ -818,7 +913,7 @@ $result = $conn->query('SELECT * FROM products ORDER BY id DESC');
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
                                 មិនទាន់មានទិន្នន័យកម្មវិធីនៅឡើយទេ (No products found)
                             </td>
                         </tr>

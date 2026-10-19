@@ -10,6 +10,21 @@ function respond(int $status, array $payload): void
     exit;
 }
 
+function restoreReservedProductStock(mysqli $conn, int $productId): void
+{
+    $statement = $conn->prepare('UPDATE products SET stock = stock + 1 WHERE id = ?');
+    if (!$statement) {
+        error_log('Could not prepare product stock restoration after Telegram order failure.');
+        return;
+    }
+
+    $statement->bind_param('i', $productId);
+    if (!$statement->execute()) {
+        error_log('Could not restore product stock after Telegram order failure.');
+    }
+    $statement->close();
+}
+
 function readConfigValue(array $keys): ?string
 {
     foreach ($keys as $key) {
@@ -92,8 +107,11 @@ require __DIR__ . '/db.php';
 if (!isset($conn) || !$conn instanceof mysqli) {
     respond(500, ['success' => false, 'message' => 'មិនអាចភ្ជាប់ទៅមូលដ្ឋានទិន្នន័យបានទេ។']);
 }
+if (!ensureProductStockColumn($conn)) {
+    respond(500, ['success' => false, 'message' => 'មិនអាចពិនិត្យស្តុកផលិតផលបានទេ។ សូមទាក់ទង Admin។']);
+}
 
-$statement = $conn->prepare('SELECT name, price FROM products WHERE id = ?');
+$statement = $conn->prepare('SELECT name, price, stock FROM products WHERE id = ?');
 if (!$statement) {
     error_log('Could not prepare Telegram order product lookup.');
     respond(500, ['success' => false, 'message' => 'មានបញ្ហាក្នុងការរៀបចំព័ត៌មានបញ្ជាទិញ។']);
@@ -110,6 +128,9 @@ $productRow = $result ? $result->fetch_assoc() : null;
 $statement->close();
 if (!$productRow) {
     respond(404, ['success' => false, 'message' => 'រកមិនឃើញផលិតផលនេះទេ។']);
+}
+if ((int) $productRow['stock'] < 1) {
+    respond(409, ['success' => false, 'message' => 'ផលិតផលនេះអស់ស្តុកហើយ។ សូមជ្រើសរើសផលិតផលផ្សេង។']);
 }
 
 $receipt = $_FILES['receipt'] ?? null;
@@ -158,6 +179,23 @@ if ($botToken === null || $chatId === null) {
     respond(503, ['success' => false, 'message' => 'ការជូនដំណឹង Telegram មិនទាន់បានកំណត់ទេ។ សូមទាក់ទង Admin។']);
 }
 
+$reserveStatement = $conn->prepare('UPDATE products SET stock = stock - 1 WHERE id = ? AND stock > 0');
+if (!$reserveStatement) {
+    error_log('Could not prepare product stock reservation.');
+    respond(500, ['success' => false, 'message' => 'មានបញ្ហាក្នុងការកក់ស្តុកផលិតផល។']);
+}
+$reserveStatement->bind_param('i', $productId);
+if (!$reserveStatement->execute()) {
+    $reserveStatement->close();
+    error_log('Could not reserve product stock.');
+    respond(500, ['success' => false, 'message' => 'មានបញ្ហាក្នុងការកក់ស្តុកផលិតផល។']);
+}
+$stockReserved = $reserveStatement->affected_rows === 1;
+$reserveStatement->close();
+if (!$stockReserved) {
+    respond(409, ['success' => false, 'message' => 'ផលិតផលនេះទើបតែអស់ស្តុក។ សូមជ្រើសរើសផលិតផលផ្សេង។']);
+}
+
 $productName = (string) $productRow['name'];
 $productPrice = (string) $productRow['price'];
 $message = "ការបញ្ជាទិញថ្មី\nផលិតផល: {$productName}\nតម្លៃ: \${$productPrice}\nឈ្មោះ: {$customerName}\nលេខទូរស័ព្ទ: {$phoneNumber}\nទីតាំង: {$location}";
@@ -166,6 +204,11 @@ $safeBaseName = preg_replace('/[^A-Za-z0-9._-]/', '_', pathinfo($originalName, P
 $safeBaseName = is_string($safeBaseName) && $safeBaseName !== '' ? substr($safeBaseName, 0, 100) : 'payment-receipt';
 $safeFileName = $safeBaseName . '.' . $receiptTypes[$receiptMime];
 $curl = curl_init('https://api.telegram.org/bot' . $botToken . '/sendDocument');
+if ($curl === false) {
+    restoreReservedProductStock($conn, $productId);
+    error_log('Could not initialize Telegram document upload.');
+    respond(500, ['success' => false, 'message' => 'មិនអាចចាប់ផ្តើមការបញ្ជូន Telegram បានទេ។ សូមព្យាយាមម្ដងទៀត។']);
+}
 curl_setopt_array($curl, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => [
@@ -185,12 +228,14 @@ $httpStatus = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
 curl_close($curl);
 
 if ($responseBody === false) {
+    restoreReservedProductStock($conn, $productId);
     error_log('Telegram order notification request failed: ' . $curlError);
     respond(502, ['success' => false, 'message' => 'មិនអាចភ្ជាប់ទៅ Telegram បានទេ។ សូមព្យាយាមម្តងទៀត។']);
 }
 
 $telegramResponse = json_decode($responseBody, true);
 if ($httpStatus < 200 || $httpStatus >= 300 || !is_array($telegramResponse) || ($telegramResponse['ok'] ?? false) !== true) {
+    restoreReservedProductStock($conn, $productId);
     error_log('Telegram rejected an order notification (HTTP ' . $httpStatus . ').');
     respond(502, ['success' => false, 'message' => 'Telegram មិនអាចទទួលព័ត៌មានបានទេ។ សូមព្យាយាមម្តងទៀត។']);
 }

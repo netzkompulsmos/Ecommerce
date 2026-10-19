@@ -1,7 +1,14 @@
 <?php
 include 'db.php';
 
-$sql = "SELECT * FROM products";
+if (!ensureProductStockColumn($conn)) {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['error' => 'Product inventory is temporarily unavailable.']);
+    exit;
+}
+
+$sql = "SELECT * FROM products WHERE stock > 0 ORDER BY id DESC";
 $result = $conn->query($sql);
 
 $products = [];
