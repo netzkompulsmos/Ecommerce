@@ -76,7 +76,7 @@ if ($page === 'about' || $is_checkout) {
     <title><?php echo $is_checkout ? 'បង់ប្រាក់ • ' . htmlspecialchars($product['name']) . ' • DNA Cyber Edition' : 'អំពី NET STORE • APP ACCOUNT SELLER'; ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" href="./logo/logome.png" type="image/x-icon">
-    <link rel="stylesheet" href="./page.css">
+    <link rel="stylesheet" href="./page.css?v=<?php echo filemtime(__DIR__ . '/page.css'); ?>">
     <style>
         <?php if ($page === 'about' && !$is_checkout): ?>
         .about-cyber-layer { position: relative; z-index: 10; width: min(1120px, 100%); margin: 24px auto 70px; padding: 0 24px; }
@@ -146,8 +146,7 @@ if ($page === 'about' || $is_checkout) {
         }
         .qr-cyber-frame { width: 210px; height: 210px; margin: 20px auto; border-radius: 24px; background: #fff; padding: 12px; box-shadow: 0 0 25px rgba(0, 240, 255, 0.5); border: 2px solid var(--cyber-cyan); position: relative; overflow: hidden; }
         .qr-cyber-frame img { width: 100%; height: 100%; object-fit: contain; }
-        .qr-cyber-laser { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, transparent, #00f0ff, #00ffaa, transparent); box-shadow: 0 0 15px #00f0ff; animation: laserScan 2.4s infinite ease-in-out; }
-        @keyframes laserScan { 0% { top: 5%; } 50% { top: 90%; } 100% { top: 5%; } }
+        .qr-cyber-laser { display: none; }
         .bank-selector-pills { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
         .bank-sel-btn { padding: 6px 14px; border-radius: 9999px; background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.25); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; }
         .bank-sel-btn.active { background: rgba(0, 240, 255, 0.3); border-color: var(--cyber-cyan); color: var(--cyber-cyan); box-shadow: 0 0 12px rgba(0, 240, 255, 0.4); }
@@ -251,37 +250,6 @@ if ($page === 'about' || $is_checkout) {
     </div>
     <?php endif; ?>
 
-    <script>
-        const canvas = document.getElementById("dna-canvas");
-        const ctx = canvas.getContext("2d");
-        let width, height, rotationTime = 0;
-        function resizeCanvas() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas();
-        function renderDNA() {
-            ctx.clearRect(0, 0, width, height);
-            rotationTime += 0.015;
-            const centerX = width / 2, centerY = height / 2, num = 45, radius = 140, len = 1600, fov = 600;
-            for (let i = 0; i < num; i++) {
-                const progress = i / num, theta = progress * Math.PI * 7 + rotationTime, rawY = (progress - 0.5) * len;
-                const x1 = Math.cos(theta) * radius, z1 = Math.sin(theta) * radius;
-                const x2 = Math.cos(theta + Math.PI) * radius, z2 = Math.sin(theta + Math.PI) * radius;
-                const s1 = fov / (fov + z1 + 500), s2 = fov / (fov + z2 + 500);
-                if (s1 > 0 && s2 > 0) {
-                    const px1 = centerX + x1 * s1, py1 = centerY + rawY * s1, px2 = centerX + x2 * s2, py2 = centerY + rawY * s2;
-                    const alpha = Math.max(0.15, Math.min(0.85, (z1 + 200) / 400));
-                    ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2);
-                    ctx.strokeStyle = `rgba(0, 240, 255, ${alpha * 0.7})`; ctx.lineWidth = Math.max(1, 2.5 * s1); ctx.stroke();
-                    ctx.beginPath(); ctx.arc(px1, py1, Math.max(2, 5 * s1), 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(0, 240, 255, ${alpha})`; ctx.fill();
-                    ctx.beginPath(); ctx.arc(px2, py2, Math.max(2, 5 * s2), 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 42, 133, ${alpha})`; ctx.fill();
-                }
-            }
-            requestAnimationFrame(renderDNA);
-        }
-        renderDNA();
-    </script>
 </body>
 </html>
 <?php
@@ -300,7 +268,7 @@ if ($page === 'about' || $is_checkout) {
     <link rel="icon" href="./logo/logome.png" type="image/x-icon">
     <link rel="apple-touch-icon" href="./logo/logome.png">
     <!-- Cyber DNA Stylesheet -->
-    <link rel="stylesheet" href="./page.css">
+    <link rel="stylesheet" href="./page.css?v=<?php echo filemtime(__DIR__ . '/page.css'); ?>">
 </head>
 
 <body>
@@ -729,195 +697,6 @@ if ($page === 'about' || $is_checkout) {
             scrollBtn.addEventListener("click", () => {
                 window.scrollTo({ top: 0, behavior: "smooth" });
             });
-        }
-
-        // =========================================================================
-        // 3D DNA Helix Live Canvas Animation Engine
-        // =========================================================================
-        const canvas = document.getElementById("dna-canvas");
-        const ctx = canvas.getContext("2d");
-
-        let width, height;
-        let mouseX = 0, mouseY = 0;
-        let targetAngleX = 0, targetAngleY = 0;
-        let angleX = 0, angleY = 0;
-        let rotationTime = 0;
-
-        function resizeCanvas() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        }
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas();
-
-        window.addEventListener("mousemove", (e) => {
-            mouseX = (e.clientX - width / 2) / (width / 2);
-            mouseY = (e.clientY - height / 2) / (height / 2);
-            targetAngleY = mouseX * 0.4;
-            targetAngleX = mouseY * 0.2;
-        });
-
-        // Ambient cyber dust particles
-        const numParticles = 65;
-        const particles = [];
-        for (let i = 0; i < numParticles; i++) {
-            particles.push({
-                x: Math.random() * 2000 - 1000,
-                y: Math.random() * 2000 - 1000,
-                z: Math.random() * 1500 - 500,
-                size: Math.random() * 2 + 0.8,
-                color: Math.random() > 0.5 ? 'rgba(0, 240, 255, ' : 'rgba(157, 78, 221, ',
-                alpha: Math.random() * 0.5 + 0.2,
-                vx: (Math.random() - 0.5) * 0.3,
-                vy: (Math.random() - 0.5) * 0.3
-            });
-        }
-
-        // DNA Helix Configuration
-        const numBasePairs = 50;
-        const helixRadius = 150;
-        const helixLength = 1800;
-        const fov = 650;
-
-        function renderDNA() {
-            ctx.clearRect(0, 0, width, height);
-
-            rotationTime += 0.015;
-            angleY += (targetAngleY - angleY) * 0.05;
-            angleX += (targetAngleX - angleX) * 0.05;
-
-            const centerX = width / 2;
-            const centerY = height / 2;
-
-            // 1. Render ambient floating cyber particles
-            for (let i = 0; i < numParticles; i++) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                if (p.x < -1000) p.x = 1000;
-                if (p.x > 1000) p.x = -1000;
-                if (p.y < -1000) p.y = 1000;
-                if (p.y > 1000) p.y = -1000;
-
-                const pScale = fov / (fov + p.z + 500);
-                if (pScale > 0) {
-                    const px = centerX + p.x * pScale;
-                    const py = centerY + p.y * pScale;
-                    ctx.beginPath();
-                    ctx.arc(px, py, p.size * pScale, 0, Math.PI * 2);
-                    ctx.fillStyle = p.color + p.alpha * pScale + ')';
-                    ctx.fill();
-                }
-            }
-
-            // 2. Generate DNA nodes
-            const basePairs = [];
-            for (let i = 0; i < numBasePairs; i++) {
-                const progress = i / numBasePairs;
-                const rawY = (progress - 0.5) * helixLength;
-                const theta = progress * Math.PI * 8 + rotationTime;
-
-                // Strand 1
-                const x1 = Math.cos(theta) * helixRadius;
-                const z1 = Math.sin(theta) * helixRadius;
-                const y1 = rawY;
-
-                // Strand 2 (offset by PI)
-                const x2 = Math.cos(theta + Math.PI) * helixRadius;
-                const z2 = Math.sin(theta + Math.PI) * helixRadius;
-                const y2 = rawY;
-
-                // Rotate around dynamic mouse angles
-                // Rotate Y
-                const cosY = Math.cos(angleY + 0.3);
-                const sinY = Math.sin(angleY + 0.3);
-
-                const rx1 = x1 * cosY - z1 * sinY;
-                const rz1 = x1 * sinY + z1 * cosY;
-
-                const rx2 = x2 * cosY - z2 * sinY;
-                const rz2 = x2 * sinY + z2 * cosY;
-
-                // Rotate X
-                const cosX = Math.cos(angleX);
-                const sinX = Math.sin(angleX);
-
-                const ry1 = y1 * cosX - rz1 * sinX;
-                const finalZ1 = y1 * sinX + rz1 * cosX;
-
-                const ry2 = y2 * cosX - rz2 * sinX;
-                const finalZ2 = y2 * sinX + rz2 * cosX;
-
-                // Average Z for depth sorting rungs
-                const avgZ = (finalZ1 + finalZ2) / 2;
-
-                basePairs.push({
-                    x1: rx1, y1: ry1, z1: finalZ1,
-                    x2: rx2, y2: ry2, z2: finalZ2,
-                    avgZ: avgZ,
-                    index: i
-                });
-            }
-
-            // Depth sorting (render furthest elements first)
-            basePairs.sort((a, b) => b.avgZ - a.avgZ);
-
-            // 3. Draw Base-Pair Rungs & Nodes with 3D glowing gradients
-            for (let i = 0; i < basePairs.length; i++) {
-                const bp = basePairs[i];
-
-                const scale1 = fov / (fov + bp.z1 + 500);
-                const scale2 = fov / (fov + bp.z2 + 500);
-
-                if (scale1 <= 0 || scale2 <= 0) continue;
-
-                const projX1 = centerX + bp.x1 * scale1;
-                const projY1 = centerY + bp.y1 * scale1;
-
-                const projX2 = centerX + bp.x2 * scale2;
-                const projY2 = centerY + bp.y2 * scale2;
-
-                // Normalized depth for lighting (0 to 1)
-                const depthAlpha = Math.max(0.15, Math.min(0.9, (bp.avgZ + 300) / 600));
-
-                // Draw Connecting Hydrogen Bond Rung
-                const lineGrad = ctx.createLinearGradient(projX1, projY1, projX2, projY2);
-                lineGrad.addColorStop(0, `rgba(0, 240, 255, ${depthAlpha * 0.7})`);
-                lineGrad.addColorStop(0.5, `rgba(157, 78, 221, ${depthAlpha * 0.9})`);
-                lineGrad.addColorStop(1, `rgba(255, 42, 133, ${depthAlpha * 0.7})`);
-
-                ctx.beginPath();
-                ctx.moveTo(projX1, projY1);
-                ctx.lineTo(projX2, projY2);
-                ctx.strokeStyle = lineGrad;
-                ctx.lineWidth = Math.max(1, 2.8 * ((scale1 + scale2) / 2));
-                ctx.stroke();
-
-                // Draw Strand 1 Node (Cyan Glow)
-                const r1 = Math.max(2, 6 * scale1);
-                ctx.beginPath();
-                ctx.arc(projX1, projY1, r1, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(0, 240, 255, ${depthAlpha})`;
-                ctx.shadowColor = '#00f0ff';
-                ctx.shadowBlur = 15 * scale1;
-                ctx.fill();
-                ctx.shadowBlur = 0; // reset
-
-                // Draw Strand 2 Node (Pink/Violet Glow)
-                const r2 = Math.max(2, 6 * scale2);
-                ctx.beginPath();
-                ctx.arc(projX2, projY2, r2, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 42, 133, ${depthAlpha})`;
-                ctx.shadowColor = '#ff2a85';
-                ctx.shadowBlur = 15 * scale2;
-                ctx.fill();
-                ctx.shadowBlur = 0; // reset
-            }
-
-            requestAnimationFrame(renderDNA);
-        }
-
-        renderDNA();
     </script>
 </body>
 

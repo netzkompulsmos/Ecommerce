@@ -10,6 +10,11 @@ $id = intval($_GET['id']);
 $result = $conn->query("SELECT * FROM products WHERE id=$id");
 $product = $result->fetch_assoc();
 
+if (!$product) {
+    header("Location: index.php");
+    exit;
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $name = $conn->real_escape_string($_POST['name']);
     $desc = $conn->real_escape_string($_POST['description']);
@@ -24,7 +29,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $fileType = mime_content_type($_FILES['icon']['tmp_name']);
 
         if (in_array($fileType, $allowedTypes)) {
-
             if (!empty($product['image']) && file_exists("../" . $product['image'])) {
                 unlink("../" . $product['image']);
             }
@@ -54,213 +58,225 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
-
 <!DOCTYPE html>
-<html>
+<html lang="km">
 
 <head>
-    <title>Edit Product</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>កែសម្រួលកម្មវិធី • Edit Product • NET STORE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" href="../home/logo/logome.png" type="image/x-icon">
-    <link rel="apple-touch-icon" href="../home/logo/logome.png">
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="../home/page.css?v=<?php echo filemtime(__DIR__ . '/../home/page.css'); ?>">
     <style>
-        body {
-            background-image: url('../home/logo/logome.png');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            padding: 20px;
-        }
-
-        form {
-            max-width: 500px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        input,
-        textarea,
-        button {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        button:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-        }
-
-        .current-image {
-            max-width: 100px;
-            display: block;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            transition: transform 0.3s;
-        }
-
-        .current-image:hover {
-            transform: scale(1.1);
-        }
-
-        .file-upload {
+        .admin-form-layer {
             position: relative;
-            overflow: hidden;
-            margin-bottom: 15px;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 16px;
         }
 
-        .file-upload-btn {
+        .admin-form-card {
+            width: 100%;
+            max-width: 520px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(30, 27, 75, 0.8) 50%, rgba(15, 23, 42, 0.92) 100%);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid rgba(99, 102, 241, 0.38);
+            border-radius: 32px;
+            padding: 38px 32px;
+            box-shadow: 
+                0 25px 60px -10px rgba(0, 0, 0, 0.9),
+                0 0 35px rgba(99, 102, 241, 0.25),
+                inset 0 1px 1px rgba(255, 255, 255, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
             display: block;
-            padding: 12px;
-            background: #4f8cff;
-            color: white;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 8px;
+        }
+
+        .cyber-input {
+            width: 100%;
+            padding: 13px 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            color: #fff;
+            font-family: inherit;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.25s ease;
+        }
+
+        .cyber-input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--cyber-cyan);
+            box-shadow: 0 0 16px rgba(6, 182, 212, 0.35);
+        }
+
+        textarea.cyber-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .current-app-preview {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 16px;
+            margin-bottom: 12px;
+        }
+
+        .current-app-preview img {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            object-fit: cover;
+            border: 1px solid var(--cyber-cyan);
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .file-upload-box {
+            position: relative;
+            border: 2px dashed rgba(99, 102, 241, 0.35);
+            border-radius: 18px;
+            padding: 24px;
             text-align: center;
-            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.25s ease;
+            background: rgba(255, 255, 255, 0.02);
         }
 
-        .file-upload-btn:hover {
-            background: #357ae8;
-            transform: translateY(-2px);
+        .file-upload-box:hover {
+            border-color: var(--cyber-cyan);
+            background: rgba(6, 182, 212, 0.05);
         }
 
-        .file-upload-input {
+        .file-upload-box input[type="file"] {
             position: absolute;
-            top: 0;
-            right: 0;
-            margin: 0;
-            padding: 0;
-            font-size: 20px;
-            cursor: pointer;
+            inset: 0;
             opacity: 0;
+            cursor: pointer;
             width: 100%;
             height: 100%;
         }
 
-        .file-upload-preview {
+        .file-preview-wrap {
             display: none;
-            max-width: 150px;
-            max-height: 150px;
-            margin: 15px auto;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s;
-        }
-
-        .file-upload-preview:hover {
-            transform: scale(1.05);
-        }
-
-        .file-upload-filename {
-            display: none;
-            text-align: center;
+            align-items: center;
+            gap: 12px;
             margin-top: 10px;
-            color: #666;
-            font-size: 14px;
+            padding: 8px 14px;
+            border-radius: 12px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid var(--cyber-emerald);
+            color: var(--cyber-emerald);
+            font-size: 13px;
+            font-weight: 600;
         }
     </style>
 </head>
 
 <body>
-    <h2>កែសម្រួលកម្មវិធី</h2>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="text" name="name" value="<?= htmlspecialchars($product['name']) ?>" required><br><br>
-        <textarea name="description" required><?= htmlspecialchars($product['description']) ?></textarea><br><br>
-        <input type="number" step="0.01" name="price" value="<?= htmlspecialchars($product['price']) ?>" required><br><br>
+    <div class="cyber-grid-lines"></div>
 
-        <label>កម្មវិធីបច្ចុប្បន្ន:</label>
-        <?php if (!empty($product['image'])): ?>
-            <img src="../<?= htmlspecialchars($product['image']) ?>" class="current-image" alt="Current Icon" id="current-icon">
-        <?php endif; ?>
+    <div class="admin-form-layer">
+        <div class="admin-form-card">
+            <!-- Header bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <a href="index.php" class="cyber-glow-btn" style="padding: 6px 16px; font-size: 13px;">
+                    <i class="fas fa-arrow-left"></i> ត្រឡប់ក្រោយ
+                </a>
+                <span class="dna-badge" style="font-size: 11px; padding: 4px 10px;">
+                    <i class="fas fa-pen"></i> Edit Product
+                </span>
+            </div>
 
-        <div class="file-upload">
-            <div class="file-upload-btn" id="upload-btn">ជ្រើសរើសកម្មវិធីថ្មី</div>
-            <input type="file" name="icon" accept="image/*" class="file-upload-input" id="file-input">
-            <img src="" class="file-upload-preview" id="image-preview">
-            <div class="file-upload-filename" id="file-name"></div>
+            <div style="text-align: center; margin-bottom: 24px;">
+                <h2 style="font-size: 26px; font-weight: 800; color: #fff; font-family: 'Space Grotesk', sans-serif;">
+                    កែសម្រួលកម្មវិធី
+                </h2>
+                <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">
+                    ផ្លាស់ប្តូរឈ្មោះ ព័ត៌មានលម្អិត តម្លៃ ឬរូបភាពតំណាង
+                </p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label><i class="fas fa-tag" style="color: var(--cyber-cyan); margin-right: 6px;"></i> ឈ្មោះកម្មវិធី (Product Name)</label>
+                    <input type="text" name="name" class="cyber-input" value="<?= htmlspecialchars($product['name']) ?>" required>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-align-left" style="color: var(--cyber-purple); margin-right: 6px;"></i> ព័ត៌មានលម្អិត (Description)</label>
+                    <textarea name="description" class="cyber-input" required><?= htmlspecialchars($product['description'] ?? '') ?></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-dollar-sign" style="color: var(--cyber-emerald); margin-right: 6px;"></i> តម្លៃជាដុល្លារ (Price in USD)</label>
+                    <input type="number" step="0.01" name="price" class="cyber-input" value="<?= htmlspecialchars($product['price']) ?>" required>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-image" style="color: var(--cyber-pink); margin-right: 6px;"></i> រូបភាពតំណាងកម្មវិធី (App Icon)</label>
+                    <?php if (!empty($product['image'])): ?>
+                        <div class="current-app-preview" id="currentIconBox">
+                            <img src="../<?= htmlspecialchars($product['image']) ?>" alt="Current Icon">
+                            <div>
+                                <div style="font-size: 13.5px; font-weight: 700; color: #fff;">រូបភាពបច្ចុប្បន្ន</div>
+                                <div style="font-size: 12px; color: var(--text-dim);">ជ្រើសរើសខាងក្រោមប្រសិនបើចង់ប្តូរថ្មី</div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="file-upload-box">
+                        <input type="file" name="icon" id="iconFileInput" accept="image/*">
+                        <i class="fas fa-cloud-arrow-up" style="font-size: 32px; color: var(--cyber-cyan); margin-bottom: 8px;"></i>
+                        <div style="font-size: 14px; font-weight: 700; color: #fff;">
+                            ចុចទីនេះដើម្បីជ្រើសរើសរូបភាពថ្មី
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">
+                            គាំទ្រ: PNG, JPG, WEBP ឬ GIF (ទុកនៅទទេបើមិនចង់ប្តូរ)
+                        </div>
+                        <div class="file-preview-wrap" id="filePreviewWrap">
+                            <i class="fas fa-check"></i>
+                            <span id="fileNameLabel"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="cyber-buy-action" style="width: 100%; padding: 14px; margin-top: 12px; font-size: 15px;">
+                    <i class="fas fa-save"></i> រក្សាទុកការកែប្រែ (Save Changes)
+                </button>
+            </form>
         </div>
-
-        <button type="submit">កែសម្រួល</button>
-    </form>
-    <a href="index.php" style="
-        display:inline-block;
-        margin-top:20px;
-        padding:10px 24px;
-        background:#4f8cff;
-        color:#fff;
-        border-radius:6px;
-        text-decoration:none;
-        font-size:16px;
-        font-weight:600;
-        transition:background 0.2s;
-    " onmouseover="this.style.background='#ff0000ff'" onmouseout="this.style.background='#4f8cff'">
-        ថយក្រោយ
-    </a>
+    </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileInput = document.getElementById('file-input');
-            const uploadBtn = document.getElementById('upload-btn');
-            const imagePreview = document.getElementById('image-preview');
-            const fileName = document.getElementById('file-name');
-            const currentIcon = document.getElementById('current-icon');
-
-            fileInput.addEventListener('change', function(e) {
-                if (this.files && this.files[0]) {
-                    const reader = new FileReader();
-
-                    reader.onload = function(e) {
-                        imagePreview.src = e.target.result;
-                        imagePreview.style.display = 'block';
-                        if (currentIcon) {
-                            currentIcon.style.display = 'none';
-                        }
-                    }
-
-                    reader.readAsDataURL(this.files[0]);
-                    fileName.textContent = this.files[0].name;
-                    fileName.style.display = 'block';
-                    uploadBtn.textContent = 'ជ្រើសរើសឯកសារផ្សេងទៀត';
-                    uploadBtn.style.animation = 'none';
-                    void uploadBtn.offsetWidth;
-                    uploadBtn.style.animation = 'pulse 0.5s';
-                }
-            });
-
-            uploadBtn.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-2px)';
-            });
-
-            uploadBtn.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-            });
-        });
-
-        const style = document.createElement('style');
-        style.innerHTML = `
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-                100% { transform: scale(1); }
+        const fileInput = document.getElementById("iconFileInput");
+        const previewWrap = document.getElementById("filePreviewWrap");
+        const nameLabel = document.getElementById("fileNameLabel");
+        fileInput.addEventListener("change", function() {
+            if (this.files && this.files[0]) {
+                nameLabel.textContent = this.files[0].name;
+                previewWrap.style.display = "inline-flex";
             }
-        `;
-        document.head.appendChild(style);
+        });
     </script>
 </body>
 

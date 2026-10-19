@@ -57,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>បន្ថែមកម្មវិធីថ្មី • Add Product • DNA Cyber Edition</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" href="../home/logo/logome.png" type="image/x-icon">
-    <link rel="stylesheet" href="../home/page.css">
+    <link rel="stylesheet" href="../home/page.css?v=<?php echo filemtime(__DIR__ . '/../home/page.css'); ?>">
     <style>
         .admin-form-layer {
             position: relative;
@@ -72,16 +72,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .admin-form-card {
             width: 100%;
             max-width: 520px;
-            background: rgba(10, 16, 32, 0.78);
-            backdrop-filter: blur(28px) saturate(200%);
-            -webkit-backdrop-filter: blur(28px) saturate(200%);
-            border: 1px solid var(--cyber-cyan);
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(30, 27, 75, 0.8) 50%, rgba(15, 23, 42, 0.92) 100%);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid rgba(99, 102, 241, 0.38);
             border-radius: 32px;
             padding: 38px 32px;
             box-shadow: 
                 0 25px 60px -10px rgba(0, 0, 0, 0.9),
-                0 0 35px rgba(0, 240, 255, 0.25),
-                inset 0 1px 1px rgba(255, 255, 255, 0.4);
+                0 0 35px rgba(99, 102, 241, 0.25),
+                inset 0 1px 1px rgba(255, 255, 255, 0.3);
         }
 
         .form-group {
@@ -165,9 +165,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 
 <body>
-    <!-- Live 3D DNA Canvas Background -->
-    <canvas id="dna-canvas"></canvas>
-    <div class="canvas-overlay-vignette"></div>
     <div class="cyber-grid-lines"></div>
 
     <div class="admin-form-layer">
@@ -250,43 +247,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 previewWrap.style.display = "inline-flex";
             }
         });
-
-        // 3D DNA Animation
-        const canvas = document.getElementById("dna-canvas");
-        const ctx = canvas.getContext("2d");
-        let width, height, rotationTime = 0;
-        function resizeCanvas() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas();
-
-        function renderDNA() {
-            ctx.clearRect(0, 0, width, height);
-            rotationTime += 0.015;
-            const centerX = width / 2, centerY = height / 2;
-            const num = 45, radius = 140, len = 1600, fov = 600;
-
-            for (let i = 0; i < num; i++) {
-                const prog = i / num;
-                const theta = prog * Math.PI * 7 + rotationTime;
-                const rawY = (prog - 0.5) * len;
-                const x1 = Math.cos(theta) * radius, z1 = Math.sin(theta) * radius;
-                const x2 = Math.cos(theta + Math.PI) * radius, z2 = Math.sin(theta + Math.PI) * radius;
-                const s1 = fov / (fov + z1 + 500), s2 = fov / (fov + z2 + 500);
-
-                if (s1 > 0 && s2 > 0) {
-                    const px1 = centerX + x1 * s1, py1 = centerY + rawY * s1;
-                    const px2 = centerX + x2 * s2, py2 = centerY + rawY * s2;
-                    const alpha = Math.max(0.15, Math.min(0.85, (z1 + 200) / 400));
-
-                    ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2);
-                    ctx.strokeStyle = `rgba(0, 240, 255, ${alpha * 0.7})`; ctx.lineWidth = Math.max(1, 2.5 * s1); ctx.stroke();
-                    ctx.beginPath(); ctx.arc(px1, py1, Math.max(2, 5 * s1), 0, Math.PI * 2); ctx.fillStyle = `rgba(0, 240, 255, ${alpha})`; ctx.fill();
-                    ctx.beginPath(); ctx.arc(px2, py2, Math.max(2, 5 * s2), 0, Math.PI * 2); ctx.fillStyle = `rgba(255, 42, 133, ${alpha})`; ctx.fill();
-                }
-            }
-            requestAnimationFrame(renderDNA);
-        }
-        renderDNA();
     </script>
 </body>
 

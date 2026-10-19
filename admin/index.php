@@ -12,19 +12,21 @@ $result = $conn->query($sql);
     <title>គ្រប់គ្រងព័ត៏មានកម្មវិធី • Admin Dashboard • iOS 27 Liquid Glass</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" href="../home/logo/logome.png" type="image/x-icon">
-    <link rel="stylesheet" href="../home/page.css">
+    <link rel="stylesheet" href="../home/page.css?v=<?php echo filemtime(__DIR__ . '/../home/page.css'); ?>">
     <style>
         .admin-dashboard-container {
             max-width: 1140px;
             margin: 40px auto 60px;
             padding: 0 20px;
+            position: relative;
+            z-index: 10;
         }
 
         .admin-header-glass {
-            background: rgba(18, 24, 42, 0.75);
-            backdrop-filter: blur(35px) saturate(220%);
-            -webkit-backdrop-filter: blur(35px) saturate(220%);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(30, 27, 75, 0.8) 50%, rgba(15, 23, 42, 0.92) 100%);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid rgba(99, 102, 241, 0.35);
             border-radius: 28px;
             padding: 24px 30px;
             margin-bottom: 24px;
@@ -33,18 +35,18 @@ $result = $conn->query($sql);
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 16px;
-            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 20px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 20px 40px rgba(0, 0, 0, 0.6);
         }
 
         .admin-table-glass {
             width: 100%;
-            background: rgba(18, 24, 42, 0.68);
-            backdrop-filter: blur(35px) saturate(220%);
-            -webkit-backdrop-filter: blur(35px) saturate(220%);
-            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(20, 25, 55, 0.8) 100%);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid rgba(99, 102, 241, 0.28);
             border-radius: 28px;
             overflow: hidden;
-            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 30px 60px -10px rgba(0, 0, 0, 0.65);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 30px 60px -10px rgba(0, 0, 0, 0.65);
         }
 
         table {
@@ -127,13 +129,7 @@ $result = $conn->query($sql);
 </head>
 
 <body>
-    <!-- Background Aurora -->
-    <div class="liquid-aurora-bg">
-        <div class="liquid-orb orb-1"></div>
-        <div class="liquid-orb orb-2"></div>
-        <div class="liquid-orb orb-3"></div>
-        <div class="liquid-noise-overlay"></div>
-    </div>
+    <div class="cyber-grid-lines"></div>
 
     <div class="admin-dashboard-container">
         <!-- Top bar -->
