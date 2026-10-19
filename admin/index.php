@@ -125,6 +125,112 @@ $result = $conn->query($sql);
             background: rgba(255, 68, 68, 0.3);
             transform: translateY(-2px);
         }
+
+        .delete-confirmation-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(3, 6, 17, 0.76);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .delete-confirmation-backdrop[hidden] {
+            display: none;
+        }
+
+        .delete-confirmation-dialog {
+            width: min(100%, 420px);
+            padding: 30px;
+            border: 1px solid rgba(255, 85, 85, 0.55);
+            border-radius: 24px;
+            background: linear-gradient(145deg, rgba(19, 25, 45, 0.99), rgba(10, 15, 30, 0.99));
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6), 0 0 28px rgba(255, 68, 68, 0.16);
+            color: #fff;
+            text-align: center;
+        }
+
+        .delete-warning-icon {
+            display: grid;
+            width: 64px;
+            height: 64px;
+            place-items: center;
+            margin: 0 auto 18px;
+            border: 1px solid rgba(255, 85, 85, 0.4);
+            border-radius: 50%;
+            background: rgba(255, 68, 68, 0.13);
+            color: #ff6262;
+            font-size: 26px;
+        }
+
+        .delete-confirmation-dialog h2 {
+            margin-bottom: 10px;
+            color: #fff;
+            font-size: 21px;
+        }
+
+        .delete-confirmation-dialog p {
+            color: rgba(226, 232, 240, 0.78);
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .delete-product-name {
+            display: block;
+            margin: 12px 0 22px;
+            overflow-wrap: anywhere;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .delete-confirmation-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .delete-confirmation-actions button {
+            min-height: 42px;
+            padding: 0 18px;
+            border: 1px solid transparent;
+            border-radius: 9999px;
+            font: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .delete-cancel-button {
+            border-color: rgba(148, 163, 184, 0.35) !important;
+            background: rgba(148, 163, 184, 0.12);
+            color: #e2e8f0;
+        }
+
+        .delete-confirm-button {
+            background: #dc3d4b;
+            color: #fff;
+        }
+
+        .delete-cancel-button:hover {
+            background: rgba(148, 163, 184, 0.22);
+        }
+
+        .delete-confirm-button:hover {
+            background: #f04452;
+        }
+
+        @media (max-width: 480px) {
+            .delete-confirmation-dialog {
+                padding: 24px 18px;
+            }
+
+            .delete-confirmation-actions {
+                flex-direction: column-reverse;
+            }
+        }
     </style>
 </head>
 
@@ -192,7 +298,7 @@ $result = $conn->query($sql);
                                     <a class="btn-table btn-edit" href="edit-product.php?id=<?= $row['id'] ?>">
                                         <i class="fas fa-pen"></i> កែប្រែ
                                     </a>
-                                    <a class="btn-table btn-delete" href="delete-product.php?id=<?= $row['id'] ?>" onclick="return confirm('តើអ្នកចង់លុបកម្មវីធីនេះមែនឬ?')">
+                                    <a class="btn-table btn-delete" href="delete-product.php?id=<?= (int) $row['id'] ?>" data-delete-product="<?= htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8') ?>">
                                         <i class="fas fa-trash"></i> លុប
                                     </a>
                                 </td>
@@ -209,6 +315,57 @@ $result = $conn->query($sql);
             </table>
         </div>
     </div>
+    <div class="delete-confirmation-backdrop" id="deleteConfirmation" hidden>
+        <section class="delete-confirmation-dialog" role="alertdialog" aria-modal="true" aria-labelledby="deleteConfirmationTitle" aria-describedby="deleteConfirmationMessage" tabindex="-1">
+            <div class="delete-warning-icon"><i class="fas fa-trash-can"></i></div>
+            <h2 id="deleteConfirmationTitle">បញ្ជាក់ការលុបកម្មវិធី</h2>
+            <p id="deleteConfirmationMessage">តើអ្នកពិតជាចង់លុបកម្មវិធីនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។</p>
+            <span class="delete-product-name" id="deleteProductName"></span>
+            <div class="delete-confirmation-actions">
+                <button type="button" class="delete-cancel-button" id="cancelProductDelete">បោះបង់</button>
+                <button type="button" class="delete-confirm-button" id="confirmProductDelete"><i class="fas fa-trash"></i> លុបកម្មវិធី</button>
+            </div>
+        </section>
+    </div>
+    <script>
+        (() => {
+            const modal = document.getElementById('deleteConfirmation');
+            const dialog = modal.querySelector('[role="alertdialog"]');
+            const productName = document.getElementById('deleteProductName');
+            const cancelButton = document.getElementById('cancelProductDelete');
+            const confirmButton = document.getElementById('confirmProductDelete');
+            let pendingDeleteUrl = '';
+            let previouslyFocusedElement = null;
+
+            const closeModal = () => {
+                modal.hidden = true;
+                pendingDeleteUrl = '';
+                if (previouslyFocusedElement) previouslyFocusedElement.focus();
+            };
+
+            document.querySelectorAll('[data-delete-product]').forEach((link) => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    pendingDeleteUrl = link.href;
+                    previouslyFocusedElement = link;
+                    productName.textContent = link.dataset.deleteProduct;
+                    modal.hidden = false;
+                    cancelButton.focus();
+                });
+            });
+
+            cancelButton.addEventListener('click', closeModal);
+            confirmButton.addEventListener('click', () => {
+                if (pendingDeleteUrl) window.location.href = pendingDeleteUrl;
+            });
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) closeModal();
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !modal.hidden) closeModal();
+            });
+        })();
+    </script>
 </body>
 
 </html>
