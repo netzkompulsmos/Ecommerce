@@ -17,18 +17,9 @@ if ($hour < 12) {
 
 $page = $_GET['page'] ?? '';
 $is_checkout = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['item'])) || $page === 'checkout' || isset($_GET['item']);
-$telegram_url = '';
+$orderCsrfToken = '';
 
 if ($is_checkout) {
-    $static_products = [
-        'yt' => ['name' => 'YouTube Premium', 'price' => '12.85', 'img' => '../img/yt.png', 'desc' => 'គ្មានការរំខានដោយពាណិជ្ជកម្ម & ភ្ជាប់មកជាមួយ YouTube Music'],
-        'mt' => ['name' => 'Meta Verified', 'price' => '13.50', 'img' => '../img/mt.png', 'desc' => 'Badge ធានាភាពត្រឹមត្រូវលើ Facebook & Instagram'],
-        'tl' => ['name' => 'Telegram Premium', 'price' => '3.75', 'img' => '../img/tl.png', 'desc' => 'Upload ឯកសារបានរហូតដល់ 4GB & Stickers ពិសេសៗ'],
-        'cv' => ['name' => 'Canva Pro', 'price' => '29.85', 'img' => '../img/cv.png', 'desc' => 'ប្រើប្រាស់ Templates & រូបភាព Pro ដោយឥតដែនកំណត់'],
-        'ct' => ['name' => 'CapCut Pro', 'price' => '6.75', 'img' => '../img/ct.png', 'desc' => 'ដោះសោ Effects, Filters និង Transition ពិសេសៗទាំងអស់'],
-        'gn' => ['name' => 'Gemini Advanced Pro', 'price' => '18.85', 'img' => '../img/gn.png', 'desc' => 'Google AI ជំនាន់ចុងក្រោយបង្អស់ ជាមួយ 2M Context Window']
-    ];
-
     $item = $_POST['item'] ?? $_GET['item'] ?? '';
     if (!is_string($item) && !is_int($item)) {
         $item = '';
@@ -39,8 +30,17 @@ if ($is_checkout) {
         exit;
     }
 
-    $product = $static_products[$item] ?? null;
-    if (!$product && $item !== '' && ctype_digit((string) $item)) {
+    if (session_status() !== PHP_SESSION_ACTIVE && !session_start()) {
+        http_response_code(500);
+        exit('Unable to start the checkout session. Please try again.');
+    }
+    if (empty($_SESSION['order_csrf_token'])) {
+        $_SESSION['order_csrf_token'] = bin2hex(random_bytes(32));
+    }
+    $orderCsrfToken = $_SESSION['order_csrf_token'];
+
+    $product = null;
+    if ($item !== '' && ctype_digit((string) $item)) {
         include_once '../api/db.php';
         if (isset($conn) && !$conn->connect_error) {
             $stmt = $conn->prepare("SELECT * FROM products WHERE id = ?");
@@ -52,7 +52,9 @@ if ($is_checkout) {
                     $product = [
                         'name' => $row['name'],
                         'price' => $row['price'],
-                        'img' => !empty($row['image']) ? '../' . $row['image'] : './logo/logome.png',
+                        'img' => !empty($row['image'])
+                            ? (preg_match('~^https?://~i', $row['image']) ? $row['image'] : '../' . $row['image'])
+                            : './logo/logome.png',
                         'desc' => 'Account កម្មវិធីដែលមានគុណភាពខ្ពស់ និងធានាជូនពេញមួយខែ'
                     ];
                 }
@@ -69,8 +71,6 @@ if ($is_checkout) {
             'desc' => 'សូមទាក់ទងមកកាន់ Admin តាម Telegram ដើម្បីពិនិត្យតម្លៃ និងទិញ'
         ];
     }
-    $telegram_message = urlencode("សួស្តី Admin! ខ្ញុំចង់ទិញ Account: " . $product['name'] . " (តម្លៃ: $" . $product['price'] . ")");
-    $telegram_url = "https://t.me/netisnet?text=" . $telegram_message;
 }
 
 if ($page === 'about' && !$is_checkout) {
@@ -476,6 +476,61 @@ if ($page === 'about' && !$is_checkout) {
             }
 
             <?php endif; ?>
+
+            /* Cyber Success Notification Popup Styles */
+            .cyber-notify-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(5, 10, 20, 0.85);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+
+            .cyber-notify-card {
+                background: rgba(10, 16, 32, 0.95);
+                border: 1px solid var(--cyber-cyan, #00f0ff);
+                box-shadow: 0 0 35px rgba(0, 240, 255, 0.35), inset 0 0 15px rgba(0, 240, 255, 0.1);
+                border-radius: 24px;
+                padding: 35px 25px;
+                max-width: 400px;
+                width: 100%;
+                text-align: center;
+                animation: popupScale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            }
+
+            .cyber-notify-icon {
+                font-size: 55px;
+                color: var(--cyber-emerald, #00ff66);
+                margin-bottom: 12px;
+                text-shadow: 0 0 20px rgba(0, 255, 102, 0.6);
+            }
+
+            .cyber-notify-card h3 {
+                color: #fff;
+                font-size: 20px;
+                font-weight: 700;
+                margin-bottom: 8px;
+                font-family: 'Space Grotesk', sans-serif;
+            }
+
+            .cyber-notify-card p {
+                color: rgba(255, 255, 255, 0.8);
+                font-size: 13.5px;
+                line-height: 1.6;
+            }
+
+            @keyframes popupScale {
+                from { transform: scale(0.8); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+            }
         </style>
     </head>
 
@@ -491,7 +546,6 @@ if ($page === 'about' && !$is_checkout) {
             $nav_about_url = 'index.php?page=about';
             $nav_support_url = '../customer-service/index.php';
             $nav_payments_url = 'index.php#payments';
-            $nav_admin_url = '../admin-login/index.php';
             require __DIR__ . '/navbar.php';
             ?>
             <div class="about-cyber-layer">
@@ -558,7 +612,7 @@ if ($page === 'about' && !$is_checkout) {
                         <a href="https://t.me/netstillloser" target="_blank" rel="noopener noreferrer" class="cyber-glow-btn"><i class="fab fa-telegram-plane"></i> ទាក់ទង NET STORE តាម Telegram</a>
                     </section>
                 </main>
-                <footer class="about-page-footer">&copy; <?php echo date('Y'); ?> NET STORE • សូមអរគុណដែលបានជ្រើសរើសយើង</footer>
+                <footer class="about-page-footer">&copy; <?php echo date('Y'); ?> 4K STORE • សូមអរគុណដែលបានជ្រើសរើសយើង</footer>
             </div>
         <?php else: ?>
             <div class="checkout-page-layer">
@@ -624,6 +678,20 @@ if ($page === 'about' && !$is_checkout) {
         </div>
     </div>
 
+    <!-- Cyber Success Notification Modal Center Screen -->
+    <div id="cyberSuccessModal" class="cyber-notify-overlay" role="presentation" hidden>
+        <section class="cyber-notify-card" role="alertdialog" aria-modal="true" aria-labelledby="successNotifyTitle" aria-describedby="successNotifyMessage" tabindex="-1">
+            <div class="cyber-notify-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 id="successNotifyTitle">បញ្ជូនទិន្នន័យជោគជ័យ!</h3>
+            <p id="successNotifyMessage">ព័ត៌មានរបស់អ្នកត្រូវបានផ្ញើទៅកាន់ Telegram Admin រួចរាល់ហើយ។</p>
+            <button type="button" id="closeNotifyBtn" class="cyber-glow-btn" style="width: 100%; margin-top: 18px; padding: 12px; font-size: 15px;">
+                យល់ព្រម
+            </button>
+        </section>
+    </div>
+
     <!-- Main Content Layer -->
     <div class="app-content-layer">
         <?php
@@ -632,7 +700,6 @@ if ($page === 'about' && !$is_checkout) {
         $nav_about_url = 'index.php?page=about';
         $nav_support_url = '../customer-service/index.php';
         $nav_payments_url = '#payments';
-        $nav_admin_url = '../admin-login/index.php';
         require __DIR__ . '/navbar.php';
         ?>
 
@@ -698,142 +765,6 @@ if ($page === 'about' && !$is_checkout) {
         </section>
 
         <div class="cyber-cards-matrix" id="productsCatalogMatrix">
-            <!-- Static Top Products -->
-            <div class="cyber-card" data-category="streaming" data-name="youtube premium">
-                <span class="card-top-tag hot"><i class="fas fa-fire"></i> Best Seller</span>
-                <div class="card-hologram-frame">
-                    <img src="../img/yt.png" alt="YouTube Premium" onerror="this.src='./logo/logome.png'">
-                </div>
-                <h3 class="card-app-title">YouTube Premium</h3>
-                <div class="card-feature-specs">
-                    <span><i class="fas fa-check" style="color:var(--cyber-emerald);"></i> No Ads</span>
-                    <span>•</span>
-                    <span><i class="fas fa-music" style="color:var(--cyber-cyan);"></i> YT Music</span>
-                </div>
-                <div class="cyber-price-pill">
-                    $12.85 <span>/ ខែ</span>
-                </div>
-                <div class="card-action-wrap">
-                    <form method="post" action="index.php">
-                        <input type="hidden" name="item" value="yt">
-                        <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="cyber-card" data-category="social" data-name="meta verified facebook instagram">
-                <span class="card-top-tag"><i class="fas fa-check-double"></i> Verified</span>
-                <div class="card-hologram-frame">
-                    <img src="../img/mt.png" alt="Meta Verified" onerror="this.src='./logo/logome.png'">
-                </div>
-                <h3 class="card-app-title">Meta Verified</h3>
-                <div class="card-feature-specs">
-                    <span><i class="fab fa-facebook" style="color:var(--cyber-cyan);"></i> FB & IG Blue Badge</span>
-                </div>
-                <div class="cyber-price-pill">
-                    $13.50 <span>/ ខែ</span>
-                </div>
-                <div class="card-action-wrap">
-                    <form method="post" action="index.php">
-                        <input type="hidden" name="item" value="mt">
-                        <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="cyber-card" data-category="social" data-name="telegram premium">
-                <span class="card-top-tag hot"><i class="fas fa-bolt"></i> Popular</span>
-                <div class="card-hologram-frame">
-                    <img src="../img/tl.png" alt="Telegram Premium" onerror="this.src='./logo/logome.png'">
-                </div>
-                <h3 class="card-app-title">Telegram Premium</h3>
-                <div class="card-feature-specs">
-                    <span><i class="fas fa-star" style="color:var(--cyber-pink);"></i> Star Badge + 4GB File</span>
-                </div>
-                <div class="cyber-price-pill">
-                    $3.75 <span>/ ខែ</span>
-                </div>
-                <div class="card-action-wrap">
-                    <form method="post" action="index.php">
-                        <input type="hidden" name="item" value="tl">
-                        <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="cyber-card" data-category="design" data-name="canva pro">
-                <span class="card-top-tag"><i class="fas fa-crown"></i> PRO</span>
-                <div class="card-hologram-frame">
-                    <img src="../img/cv.png" alt="Canva Pro" onerror="this.src='./logo/logome.png'">
-                </div>
-                <h3 class="card-app-title">Canva Pro</h3>
-                <div class="card-feature-specs">
-                    <span><i class="fas fa-magic" style="color:var(--cyber-cyan);"></i> Unlimited Templates</span>
-                </div>
-                <div class="cyber-price-pill">
-                    $29.85 <span>/ ខែ</span>
-                </div>
-                <div class="card-action-wrap">
-                    <form method="post" action="index.php">
-                        <input type="hidden" name="item" value="cv">
-                        <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="cyber-card" data-category="design" data-name="capcut pro">
-                <span class="card-top-tag"><i class="fas fa-video"></i> VIP</span>
-                <div class="card-hologram-frame">
-                    <img src="../img/ct.png" alt="CapCut Pro" onerror="this.src='./logo/logome.png'">
-                </div>
-                <h3 class="card-app-title">CapCut Pro</h3>
-                <div class="card-feature-specs">
-                    <span><i class="fas fa-film" style="color:var(--cyber-amber);"></i> All Pro Effects</span>
-                </div>
-                <div class="cyber-price-pill">
-                    $6.75 <span>/ ខែ</span>
-                </div>
-                <div class="card-action-wrap">
-                    <form method="post" action="index.php">
-                        <input type="hidden" name="item" value="ct">
-                        <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="cyber-card" data-category="ai" data-name="gemini advanced pro google ai">
-                <span class="card-top-tag hot"><i class="fas fa-brain"></i> AI PRO</span>
-                <div class="card-hologram-frame">
-                    <img src="../img/gn.png" alt="Gemini Pro" onerror="this.src='./logo/logome.png'">
-                </div>
-                <h3 class="card-app-title">Gemini Advanced Pro</h3>
-                <div class="card-feature-specs">
-                    <span><i class="fas fa-sparkles" style="color:var(--cyber-cyan);"></i> 2M Context Window</span>
-                </div>
-                <div class="cyber-price-pill">
-                    $18.85 <span>/ ខែ</span>
-                </div>
-                <div class="card-action-wrap">
-                    <form method="post" action="index.php">
-                        <input type="hidden" name="item" value="gn">
-                        <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Database Dynamic Products from MySQL -->
             <?php
             include '../api/db.php';
             if (isset($conn) && !$conn->connect_error) {
@@ -842,7 +773,9 @@ if ($page === 'about' && !$is_checkout) {
                     while ($p = $db_result->fetch_assoc()) {
                         $p_name = htmlspecialchars($p['name']);
                         $p_price = htmlspecialchars($p['price']);
-                        $p_img = !empty($p['image']) ? '../' . htmlspecialchars($p['image']) : './logo/logome.png';
+                        $p_img = !empty($p['image'])
+                            ? (preg_match('~^https?://~i', $p['image']) ? htmlspecialchars($p['image'], ENT_QUOTES, 'UTF-8') : '../' . htmlspecialchars($p['image'], ENT_QUOTES, 'UTF-8'))
+                            : './logo/logome.png';
                         $p_id = htmlspecialchars($p['id']);
 
                         $cat = "other";
@@ -867,7 +800,7 @@ if ($page === 'about' && !$is_checkout) {
                                 <span><i class="fas fa-shield-alt" style="color:var(--cyber-emerald);"></i> ធានាគុណភាព 100%</span>
                             </div>
                             <div class="cyber-price-pill">
-                                $<?php echo $p_price; ?> <span>/ ខែ</span>
+                                $<?php echo $p_price; ?> <span>/ មួយ</span>
                             </div>
                             <div class="card-action-wrap">
                                 <form method="post" action="index.php">
@@ -880,6 +813,10 @@ if ($page === 'about' && !$is_checkout) {
                         </div>
             <?php
                     }
+                } else {
+            ?>
+                    <p class="catalog-empty-state">មិនទាន់មានផលិតផលសម្រាប់លក់នៅឡើយទេ (No products available)</p>
+            <?php
                 }
             }
             ?>
@@ -949,7 +886,7 @@ if ($page === 'about' && !$is_checkout) {
                 </div>
             </div>
             <div style="font-size: 12px; color: var(--text-dim); border-top: 1px solid rgba(0, 240, 255, 0.15); padding-top: 18px; width: 100%; font-family: 'Space Grotesk', sans-serif;">
-                &copy; <?php echo date('Y'); ?> NET APP SELLER • All rights reserved.
+                &copy; <?php echo date('Y'); ?> 4K STORE • All rights reserved.
             </div>
         </footer>
     </div>
@@ -976,24 +913,36 @@ if ($page === 'about' && !$is_checkout) {
                     <span class="bank-sel-btn active"><i class="fas fa-qrcode"></i> Bakong KHQR</span>
                 </div>
                 <div class="qr-cyber-frame"><img src="../img/khqr.png" alt="KHQR Payment" onerror="this.src='./logo/icon.png'"></div>
-                <form class="checkout-order-form" id="checkoutOrderForm" method="get" action="<?php echo htmlspecialchars($telegram_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" data-product-name="<?php echo htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8'); ?>" data-product-price="<?php echo htmlspecialchars((string) $product['price'], ENT_QUOTES, 'UTF-8'); ?>">
+                <form class="checkout-order-form" id="checkoutOrderForm" action="../api/telegram-order.php" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($orderCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="item" value="<?php echo htmlspecialchars((string) $item, ENT_QUOTES, 'UTF-8'); ?>">
+                    <!-- Customer Name Input -->
+                    <label for="checkoutName">ឈ្មោះអតិថិជន</label>
+                    <input id="checkoutName" name="customer_name" type="text" maxlength="100" autocomplete="name" placeholder="នាម/ឈ្មោះ" required>
 
-                    <!-- Gmail Input -->
-                    <label for="checkoutGmail">គណនីសម្រាប់ការ Pro <span>(GMAIL)</span></label>
-                    <input id="checkoutGmail" name="gmail" type="email" inputmode="email" autocomplete="email" placeholder="name@gmail.com" required>
+                    <!-- Phone Number Input -->
+                    <label for="checkoutPhone">លេខទូរស័ព្ទ</label>
+                    <input id="checkoutPhone" name="phone_number" type="tel" inputmode="tel" autocomplete="tel" placeholder="បញ្ចូលលេខទូរស័ព្ទ" required>
 
-                    <!-- Password Input -->
-                    <label for="checkoutPassword">ពាក្យសម្ងាត់ (Password)</label>
-                    <input id="checkoutPassword" name="password" type="password" autocomplete="current-password" placeholder="បញ្ចូលពាក្យសម្ងាត់" required>
+                    <!-- Location Input -->
+                    <label for="checkoutLocation">ទីតាំង</label>
+                    <input id="checkoutLocation" name="location" type="text" maxlength="300" placeholder="បញ្ចូលទីតាំង" required>
 
-                    <!-- 2FA Code Input -->
-                    <label for="checkout2FA">លេខកូដ2FA (Authenticator Code)</label>
-                    <input id="checkout2FA" name="code_2fa" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="បញ្ចូលលេខកូដ Authenticator" required >
+                    <p class="checkout-receipt-field-label">វិក្កយបត្រ ឬរូបថតអេក្រង់បង់ប្រាក់</p>
+                    <label class="checkout-receipt-upload" for="checkoutReceipt">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                        <span>ជ្រើសរើសរូបភាព ឬ PDF នៃការបង់ប្រាក់</span>
+                        <small>JPG, PNG, WEBP, HEIC ឬ PDF — ទំហំអតិបរមា 5 MB</small>
+                    </label>
+                    <input id="checkoutReceipt" class="checkout-receipt-input" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" required>
+                    <span class="checkout-receipt-filename" id="checkoutReceiptFilename">មិនទាន់បានជ្រើសរើសឯកសារ</span>
+                    <div class="checkout-order-status" id="checkoutOrderStatus" role="status" aria-live="polite"></div>
 
                     <button type="submit" class="cyber-buy-action checkout-telegram-action">
                         <i class="fab fa-telegram-plane"></i> បញ្ជូនព័ត៏មាន
                     </button>
                 </form>
+
                 <div class="checkout-delivery-note"><i class="fas fa-clock"></i> Admin នឹងប្រគល់ Account ជូនលោកអ្នកក្នុងរយៈពេល 1-2 នាទី
                     <p class="checkout-email-privacy">ព័ត៌មាននេះនឹងត្រូវផ្ញើទៅ Admin តាម Telegram ប៉ុណ្ណោះ។</p>
                 </div>
@@ -1015,14 +964,67 @@ if ($page === 'about' && !$is_checkout) {
                 document.addEventListener('keydown', (event) => {
                     if (event.key === 'Escape' && !modal.hidden) closeModal();
                 });
+
                 const orderForm = document.getElementById('checkoutOrderForm');
-                orderForm.addEventListener('submit', () => {
-                    const gmail = document.getElementById('checkoutGmail').value.trim();
-                    const message = `សួស្តី Admin! ខ្ញុំចង់ទិញ Account: ${orderForm.dataset.productName} (តម្លៃ: $${orderForm.dataset.productPrice})។ Gmail សម្រាប់ការបញ្ជាទិញ: ${gmail}`;
-                    const telegramUrl = new URL('https://t.me/netisnet');
-                    telegramUrl.searchParams.set('text', message);
-                    orderForm.action = telegramUrl.toString();
+                const receiptInput = document.getElementById('checkoutReceipt');
+                const receiptFilename = document.getElementById('checkoutReceiptFilename');
+                const orderStatus = document.getElementById('checkoutOrderStatus');
+                const submitButton = orderForm.querySelector('button[type="submit"]');
+                const submitButtonContent = submitButton.innerHTML;
+
+                receiptInput.addEventListener('change', () => {
+                    const receipt = receiptInput.files[0];
+                    receiptFilename.textContent = receipt
+                        ? `${receipt.name} (${(receipt.size / (1024 * 1024)).toFixed(2)} MB)`
+                        : 'មិនទាន់បានជ្រើសរើសឯកសារ';
                 });
+
+                orderForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+
+                    const receipt = receiptInput.files[0];
+                    if (!receipt) {
+                        orderStatus.dataset.state = 'error';
+                        orderStatus.textContent = 'សូមភ្ជាប់វិក្កយបត្រ ឬរូបថតអេក្រង់បង់ប្រាក់។';
+                        receiptInput.focus();
+                        return;
+                    }
+                    if (receipt.size > 5 * 1024 * 1024) {
+                        orderStatus.dataset.state = 'error';
+                        orderStatus.textContent = 'ឯកសារធំពេក។ សូមជ្រើសរើសឯកសារមិនលើស 5 MB។';
+                        receiptInput.focus();
+                        return;
+                    }
+
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> កំពុងបញ្ជូន...';
+                    orderStatus.dataset.state = '';
+                    orderStatus.textContent = 'កំពុងបញ្ជូនព័ត៌មាន និងវិក្កយបត្រទៅ Admin...';
+
+                    fetch(orderForm.action, {
+                        method: 'POST',
+                        body: new FormData(orderForm)
+                    })
+                    .then(async (response) => {
+                        const data = await response.json();
+                        if (!response.ok || data.success !== true) {
+                            throw new Error(data.message || 'មិនអាចបញ្ជូនការបញ្ជាទិញបានទេ។');
+                        }
+                        modal.hidden = true;
+                        const successModal = document.getElementById('cyberSuccessModal');
+                        successModal.hidden = false;
+                        document.getElementById('closeNotifyBtn').focus();
+                    })
+                    .catch((error) => {
+                        orderStatus.dataset.state = 'error';
+                        orderStatus.textContent = error.message || 'មានបញ្ហាក្នុងការតភ្ជាប់បណ្តាញ!';
+                    })
+                    .finally(() => {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = submitButtonContent;
+                    })
+                });
+
                 window.history.replaceState({}, document.title, 'index.php');
                 dialog.focus();
             })();
@@ -1114,6 +1116,7 @@ if ($page === 'about' && !$is_checkout) {
                     behavior: "smooth"
                 });
             });
+        }
     </script>
 </body>
 

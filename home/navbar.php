@@ -3,7 +3,7 @@ $nav_home_url = $nav_home_url ?? 'index.php';
 $nav_about_url = $nav_about_url ?? 'index.php?page=about';
 $nav_support_url = $nav_support_url ?? '../customer-service/index.php';
 $nav_payments_url = $nav_payments_url ?? '#payments';
-$nav_admin_url = $nav_admin_url ?? '../admin-login/index.php';
+$nav_admin_url = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/') . '/admin/index.php';
 $nav_active = $nav_active ?? 'home';
 $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
     $active_class = $nav_active === $page ? ' active' : '';
@@ -17,7 +17,7 @@ $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
                 <img src="<?php echo htmlspecialchars(dirname($nav_home_url) === '.' ? './logo/icon.png' : dirname($nav_home_url) . '/logo/icon.png', ENT_QUOTES, 'UTF-8'); ?>" alt="NET Brand Icon" onerror="this.src='<?php echo htmlspecialchars(dirname($nav_home_url) === '.' ? './logo/logome.png' : dirname($nav_home_url) . '/logo/logome.png', ENT_QUOTES, 'UTF-8'); ?>'">
             </div>
             <div class="brand-titles">
-                <h1>NET STORE <span class="dna-badge">V.1.2</span></h1>
+                <h1>4K STORE <span class="dna-badge">V.1.2</span></h1>
                 <span>បម្រើការសេវាកម្មឌីជីថល</span>
             </div>
         </a>

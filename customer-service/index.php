@@ -196,7 +196,6 @@
     $nav_about_url = '../home/index.php?page=about';
     $nav_support_url = 'index.php';
     $nav_payments_url = '../home/index.php#payments';
-    $nav_admin_url = '../admin-login/index.php';
     require __DIR__ . '/../home/navbar.php';
     ?>
 
