@@ -47,8 +47,8 @@ $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
     </nav>
 </header>
 
-<div id="mobileMenuDrawer" style="display: none; position: fixed; top: 80px; left: 16px; right: 16px; z-index: 999; background: rgba(8, 14, 28, 0.95); backdrop-filter: blur(30px); border: 1px solid var(--cyber-cyan); border-radius: 24px; padding: 22px; box-shadow: 0 0 35px rgba(0,240,255,0.3);">
-    <div style="display: flex; flex-direction: column; gap: 12px;">
+<div id="mobileMenuDrawer" class="mobile-menu-drawer" hidden>
+    <div class="mobile-menu-links">
         <?php
         $nav_link('home', 'ទំព័រដើម', 'fa-microchip', $nav_home_url);
         $nav_link('about', 'អំពីយើង', 'fa-atom', $nav_about_url);
@@ -64,8 +64,8 @@ $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
     const mobileDrawer = document.getElementById("mobileMenuDrawer");
     if (mobileToggle && mobileDrawer) {
         mobileToggle.addEventListener("click", () => {
-            const isOpen = mobileDrawer.style.display === "block";
-            mobileDrawer.style.display = isOpen ? "none" : "block";
+            const isOpen = mobileToggle.getAttribute("aria-expanded") === "true";
+            mobileDrawer.hidden = isOpen;
             mobileToggle.setAttribute("aria-expanded", String(!isOpen));
         });
     }

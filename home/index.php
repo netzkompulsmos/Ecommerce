@@ -17,6 +17,7 @@ if ($hour < 12) {
 
 $page = $_GET['page'] ?? '';
 $is_checkout = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['item'])) || $page === 'checkout' || isset($_GET['item']);
+$telegram_url = '';
 
 if ($is_checkout) {
     $static_products = [
@@ -32,6 +33,12 @@ if ($is_checkout) {
     if (!is_string($item) && !is_int($item)) {
         $item = '';
     }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $checkout_url = $item === '' ? 'index.php' : 'index.php?item=' . rawurlencode((string) $item);
+        header('Location: ' . $checkout_url, true, 303);
+        exit;
+    }
+
     $product = $static_products[$item] ?? null;
     if (!$product && $item !== '' && ctype_digit((string) $item)) {
         include_once '../api/db.php';
@@ -66,7 +73,7 @@ if ($is_checkout) {
     $telegram_url = "https://t.me/netisnet?text=" . $telegram_message;
 }
 
-if ($page === 'about' || $is_checkout) {
+if ($page === 'about' || ($is_checkout && $_SERVER['REQUEST_METHOD'] !== 'POST')) {
 ?>
 <!DOCTYPE html>
 <html lang="km">
@@ -271,7 +278,7 @@ if ($page === 'about' || $is_checkout) {
     <link rel="stylesheet" href="./page.css?v=<?php echo filemtime(__DIR__ . '/page.css'); ?>">
 </head>
 
-<body>
+<body class="<?php echo $is_checkout ? 'buy-modal-open' : ''; ?>">
     <!-- Live 3D DNA Helix Canvas Background -->
     <canvas id="dna-canvas"></canvas>
     <div class="canvas-overlay-vignette"></div>
@@ -372,13 +379,13 @@ if ($page === 'about' || $is_checkout) {
                     <span><i class="fas fa-music" style="color:var(--cyber-cyan);"></i> YT Music</span>
                 </div>
                 <div class="cyber-price-pill">
-                    $12.85 <span>/ ខែ (Mo)</span>
+                    $12.85 <span>/ ខែ</span>
                 </div>
                 <div class="card-action-wrap">
                     <form method="post" action="index.php">
                         <input type="hidden" name="item" value="yt">
                         <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ (Buy Now)
+                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
                         </button>
                     </form>
                 </div>
@@ -394,13 +401,13 @@ if ($page === 'about' || $is_checkout) {
                     <span><i class="fab fa-facebook" style="color:var(--cyber-cyan);"></i> FB & IG Blue Badge</span>
                 </div>
                 <div class="cyber-price-pill">
-                    $13.50 <span>/ ខែ (Mo)</span>
+                    $13.50 <span>/ ខែ</span>
                 </div>
                 <div class="card-action-wrap">
                     <form method="post" action="index.php">
                         <input type="hidden" name="item" value="mt">
                         <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ (Buy Now)
+                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
                         </button>
                     </form>
                 </div>
@@ -416,13 +423,13 @@ if ($page === 'about' || $is_checkout) {
                     <span><i class="fas fa-star" style="color:var(--cyber-pink);"></i> Star Badge + 4GB File</span>
                 </div>
                 <div class="cyber-price-pill">
-                    $3.75 <span>/ ខែ (Mo)</span>
+                    $3.75 <span>/ ខែ</span>
                 </div>
                 <div class="card-action-wrap">
                     <form method="post" action="index.php">
                         <input type="hidden" name="item" value="tl">
                         <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ (Buy Now)
+                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
                         </button>
                     </form>
                 </div>
@@ -438,13 +445,13 @@ if ($page === 'about' || $is_checkout) {
                     <span><i class="fas fa-magic" style="color:var(--cyber-cyan);"></i> Unlimited Templates</span>
                 </div>
                 <div class="cyber-price-pill">
-                    $29.85 <span>/ ខែ (Mo)</span>
+                    $29.85 <span>/ ខែ</span>
                 </div>
                 <div class="card-action-wrap">
                     <form method="post" action="index.php">
                         <input type="hidden" name="item" value="cv">
                         <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ (Buy Now)
+                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
                         </button>
                     </form>
                 </div>
@@ -460,13 +467,13 @@ if ($page === 'about' || $is_checkout) {
                     <span><i class="fas fa-film" style="color:var(--cyber-amber);"></i> All Pro Effects</span>
                 </div>
                 <div class="cyber-price-pill">
-                    $6.75 <span>/ ខែ (Mo)</span>
+                    $6.75 <span>/ ខែ</span>
                 </div>
                 <div class="card-action-wrap">
                     <form method="post" action="index.php">
                         <input type="hidden" name="item" value="ct">
                         <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ (Buy Now)
+                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
                         </button>
                     </form>
                 </div>
@@ -482,13 +489,13 @@ if ($page === 'about' || $is_checkout) {
                     <span><i class="fas fa-sparkles" style="color:var(--cyber-cyan);"></i> 2M Context Window</span>
                 </div>
                 <div class="cyber-price-pill">
-                    $18.85 <span>/ ខែ (Mo)</span>
+                    $18.85 <span>/ ខែ</span>
                 </div>
                 <div class="card-action-wrap">
                     <form method="post" action="index.php">
                         <input type="hidden" name="item" value="gn">
                         <button type="submit" class="cyber-buy-action">
-                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ (Buy Now)
+                            <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
                         </button>
                     </form>
                 </div>
@@ -528,13 +535,13 @@ if ($page === 'about' || $is_checkout) {
                                 <span><i class="fas fa-shield-alt" style="color:var(--cyber-emerald);"></i> ធានាគុណភាព 100%</span>
                             </div>
                             <div class="cyber-price-pill">
-                                $<?php echo $p_price; ?> <span>/ ខែ (Mo)</span>
+                                $<?php echo $p_price; ?> <span>/ ខែ</span>
                             </div>
                             <div class="card-action-wrap">
                                 <form method="post" action="index.php">
                                     <input type="hidden" name="item" value="<?php echo $p_id; ?>">
                                     <button type="submit" class="cyber-buy-action">
-                                        <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ (Buy Now)
+                                        <i class="fas fa-bolt"></i> ទិញឥឡូវនេះ
                                     </button>
                                 </form>
                             </div>
@@ -614,6 +621,56 @@ if ($page === 'about' || $is_checkout) {
             </div>
         </footer>
     </div>
+
+    <?php if ($is_checkout): ?>
+    <div class="buy-checkout-modal" id="buyCheckoutModal" role="presentation">
+        <section class="checkout-cyber-card" role="dialog" aria-modal="true" aria-labelledby="buyCheckoutTitle" tabindex="-1">
+            <div class="checkout-modal-heading">
+                <span class="dna-badge"><i class="fas fa-shield-halved"></i> 100% Secure Node</span>
+                <button type="button" class="checkout-modal-close" aria-label="បិទផ្ទាំងទូទាត់" data-close-checkout>
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="card-hologram-frame checkout-product-image"><img src="<?php echo htmlspecialchars($product['img']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>"></div>
+            <h2 id="buyCheckoutTitle"><?php echo htmlspecialchars($product['name']); ?></h2>
+            <p class="checkout-product-description"><?php echo htmlspecialchars($product['desc']); ?></p>
+            <div class="cyber-price-pill checkout-product-price">$<?php echo htmlspecialchars($product['price']); ?> <span>/ ខែ (Per Month)</span></div>
+            <div class="bank-selector-pills">
+                <span class="bank-sel-btn active"><i class="fas fa-qrcode"></i> Bakong KHQR</span>
+                <span class="bank-sel-btn"><i class="fas fa-building-columns"></i> ABA Bank</span>
+                <span class="bank-sel-btn"><i class="fas fa-wallet"></i> Wing Bank</span>
+            </div>
+            <div class="qr-cyber-frame"><img src="../img/khqr.png" alt="KHQR Payment" onerror="this.src='./logo/icon.png'"></div>
+            <div class="checkout-payment-instructions">
+                <div><i class="fas fa-info-circle"></i> របៀបទូទាត់ប្រាក់៖</div>
+                1. ស្កេន QR Code ឬថតរូបអេក្រង់ (Screenshot)<br>
+                2. ចុចប៊ូតុងខាងក្រោមដើម្បីផ្ញើវិក្កយបត្រទៅកាន់ Telegram Admin ភ្លាមៗ
+            </div>
+            <a href="<?php echo htmlspecialchars($telegram_url); ?>" target="_blank" rel="noopener noreferrer" class="cyber-buy-action checkout-telegram-action"><i class="fab fa-telegram-plane"></i> ផ្ញើវិក្កយបត្រទៅ Telegram (@netisnet)</a>
+            <div class="checkout-delivery-note"><i class="fas fa-clock"></i> Admin នឹងប្រគល់ Account ជូនលោកអ្នកក្នុងរយៈពេល 1-2 នាទី</div>
+        </section>
+    </div>
+    <script>
+        (() => {
+            const modal = document.getElementById('buyCheckoutModal');
+            const dialog = modal.querySelector('[role="dialog"]');
+            const closeModal = () => {
+                modal.hidden = true;
+                document.body.classList.remove('buy-modal-open');
+            };
+
+            modal.querySelector('[data-close-checkout]').addEventListener('click', closeModal);
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) closeModal();
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !modal.hidden) closeModal();
+            });
+            window.history.replaceState({}, document.title, 'index.php');
+            dialog.focus();
+        })();
+    </script>
+    <?php endif; ?>
 
     <!-- Scroll Up Floating Button -->
     <button id="cyberScrollTop" aria-label="Scroll to top">
