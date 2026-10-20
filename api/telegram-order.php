@@ -110,8 +110,11 @@ if (!isset($conn) || !$conn instanceof mysqli) {
 if (!ensureProductStockColumn($conn)) {
     respond(500, ['success' => false, 'message' => 'មិនអាចពិនិត្យស្តុកផលិតផលបានទេ។ សូមទាក់ទង Admin។']);
 }
+if (!ensureSalesAnalyticsSchema($conn)) {
+    respond(500, ['success' => false, 'message' => 'មិនអាចរក្សាទុកប្រវត្តិការបញ្ជាទិញបានទេ។ សូមទាក់ទង Admin។']);
+}
 
-$statement = $conn->prepare('SELECT name, price, stock FROM products WHERE id = ?');
+$statement = $conn->prepare('SELECT name, price, cost_price, stock FROM products WHERE id = ?');
 if (!$statement) {
     error_log('Could not prepare Telegram order product lookup.');
     respond(500, ['success' => false, 'message' => 'មានបញ្ហាក្នុងការរៀបចំព័ត៌មានបញ្ជាទិញ។']);
@@ -239,6 +242,20 @@ if ($httpStatus < 200 || $httpStatus >= 300 || !is_array($telegramResponse) || (
     error_log('Telegram rejected an order notification (HTTP ' . $httpStatus . ').');
     respond(502, ['success' => false, 'message' => 'Telegram មិនអាចទទួលព័ត៌មានបានទេ។ សូមព្យាយាមម្តងទៀត។']);
 }
+
+$saleStatement = $conn->prepare('INSERT INTO sales_orders (product_id, product_name, customer_name, phone_number, location, quantity, unit_price, unit_cost) VALUES (?, ?, ?, ?, ?, 1, ?, ?)');
+if (!$saleStatement) {
+    error_log('Could not prepare accepted Telegram order record.');
+    respond(500, ['success' => false, 'message' => 'ការបញ្ជាទិញត្រូវបានផ្ញើ ប៉ុន្តែមិនអាចរក្សាទុកប្រវត្តិបានទេ។ សូមទាក់ទង Admin។']);
+}
+$unitCost = $productRow['cost_price'] === null ? null : (float) $productRow['cost_price'];
+$saleStatement->bind_param('issssdd', $productId, $productName, $customerName, $phoneNumber, $location, $productPrice, $unitCost);
+if (!$saleStatement->execute()) {
+    error_log('Could not save accepted Telegram order: ' . $saleStatement->error);
+    $saleStatement->close();
+    respond(500, ['success' => false, 'message' => 'ការបញ្ជាទិញត្រូវបានផ្ញើ ប៉ុន្តែមិនអាចរក្សាទុកប្រវត្តិបានទេ។ សូមទាក់ទង Admin។']);
+}
+$saleStatement->close();
 
 unset($_SESSION['order_csrf_token']);
 respond(200, ['success' => true, 'message' => 'បានបញ្ជូនព័ត៌មានបញ្ជាទិញទៅ Telegram រួចរាល់។']);

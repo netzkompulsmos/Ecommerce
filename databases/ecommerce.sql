@@ -25,6 +25,8 @@ DROP TABLE IF EXISTS `audit_logs`;
 DROP TABLE IF EXISTS `system_settings`;
 DROP TABLE IF EXISTS `login`;
 DROP TABLE IF EXISTS `messages`;
+DROP TABLE IF EXISTS `sales_orders`;
+DROP TABLE IF EXISTS `product_activity`;
 DROP TABLE IF EXISTS `products`;
 DROP TABLE IF EXISTS `users`;
 
@@ -161,11 +163,42 @@ CREATE TABLE `products` (
   `name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
+  `cost_price` decimal(10,2) DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
   `stock` int(10) unsigned NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `sales_orders` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` int(11) DEFAULT NULL,
+  `product_name` varchar(255) NOT NULL,
+  `customer_name` varchar(100) NOT NULL,
+  `phone_number` varchar(32) NOT NULL,
+  `location` varchar(300) NOT NULL,
+  `quantity` int(10) unsigned NOT NULL DEFAULT 1,
+  `unit_price` decimal(10,2) NOT NULL,
+  `unit_cost` decimal(10,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_sales_created_at` (`created_at`),
+  KEY `idx_sales_product_id` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `product_activity` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` int(11) DEFAULT NULL,
+  `product_name` varchar(255) NOT NULL,
+  `action` varchar(20) NOT NULL,
+  `actor` varchar(100) NOT NULL,
+  `old_values` text DEFAULT NULL,
+  `new_values` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_product_activity_created_at` (`created_at`),
+  KEY `idx_product_activity_product_id` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `products` (`id`, `name`, `description`, `price`, `image`, `created_at`) VALUES
 (7, 'CAPCUT STANDARD', 'new version', 6.99, 'img/products/icon_6875e94aa88cc3.21060813.jpg', '2025-07-14 04:56:44'),

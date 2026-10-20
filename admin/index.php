@@ -3,20 +3,168 @@ include '../api/db.php';
 
 const LOW_STOCK_THRESHOLD = 5;
 
+if (session_status() !== PHP_SESSION_ACTIVE && !session_start()) {
+    http_response_code(500);
+    exit('Could not start the admin session.');
+}
+
+$action = $_POST['action'] ?? $_GET['action'] ?? 'list';
+$loginError = '';
+$submittedCsrf = $_POST['csrf_token'] ?? '';
+$sessionCsrf = $_SESSION['admin_csrf_token'] ?? '';
+$csrfValid = is_string($submittedCsrf) && is_string($sessionCsrf) && $sessionCsrf !== '' && hash_equals($sessionCsrf, $submittedCsrf);
+
+if (empty($_SESSION['admin_csrf_token'])) {
+    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['admin_csrf_token'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'login') {
+    if (!$csrfValid) {
+        $loginError = 'The sign-in form expired. Please try again.';
+    } else {
+        $usernameInput = $_POST['username'] ?? '';
+        $username = is_string($usernameInput) ? trim($usernameInput) : '';
+        $password = $_POST['password'] ?? '';
+        $stmt = $conn->prepare('SELECT id, username, password FROM admins WHERE username = ? LIMIT 1');
+        if (!$stmt) {
+            error_log('Could not prepare admin login lookup: ' . $conn->error);
+            http_response_code(500);
+            exit('Admin sign-in is temporarily unavailable.');
+        }
+        $stmt->bind_param('s', $username);
+        if (!$stmt->execute()) {
+            error_log('Could not execute admin login lookup: ' . $stmt->error);
+            $stmt->close();
+            http_response_code(500);
+            exit('Admin sign-in is temporarily unavailable.');
+        }
+        $admin = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (is_string($password) && $admin && password_verify($password, $admin['password'])) {
+            session_regenerate_id(true);
+            $_SESSION['admin_id'] = (int) $admin['id'];
+            $_SESSION['admin_username'] = (string) $admin['username'];
+            $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+            header('Location: index.php');
+            exit;
+        }
+
+        $loginError = 'Incorrect username or password.';
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'logout' && $csrfValid) {
+    unset($_SESSION['admin_id'], $_SESSION['admin_username'], $_SESSION['admin_csrf_token']);
+    session_regenerate_id(true);
+    header('Location: index.php');
+    exit;
+}
+
+if (!isset($_SESSION['admin_id'], $_SESSION['admin_username'])) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin Sign In</title>
+        <link rel="stylesheet" href="../home/page.css">
+        <style>
+            .admin-login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+            .admin-login-card { width: min(100%, 420px); padding: 34px; border: 1px solid rgba(0,242,254,.35); border-radius: 24px; background: rgba(10,16,32,.92); color: #fff; }
+            .admin-login-card h1 { margin: 0 0 8px; }
+            .admin-login-card p { color: rgba(255,255,255,.7); }
+            .admin-login-card label { display: block; margin: 18px 0 7px; }
+            .admin-login-card input { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid rgba(0,242,254,.3); border-radius: 10px; background: rgba(255,255,255,.08); color: #fff; font: inherit; }
+            .admin-login-card button { width: 100%; margin-top: 22px; padding: 12px; border: 0; border-radius: 10px; background: #00d9ee; color: #07111e; font: inherit; font-weight: 700; cursor: pointer; }
+            .admin-login-error { margin-top: 16px; color: #ff8b9b; }
+        </style>
+    </head>
+    <body>
+        <main class="admin-login-wrap">
+            <form class="admin-login-card" method="post" action="index.php">
+                <h1>Admin sign in</h1>
+                <p>Sign in to view private customer orders and manage products.</p>
+                <?php if ($loginError !== ''): ?><div class="admin-login-error"><?= htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                <input type="hidden" name="action" value="login">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                <label for="adminUsername">Username</label>
+                <input id="adminUsername" name="username" type="text" autocomplete="username" required>
+                <label for="adminPassword">Password</label>
+                <input id="adminPassword" name="password" type="password" autocomplete="current-password" required>
+                <button type="submit">Sign in</button>
+            </form>
+        </main>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+$adminUsername = (string) $_SESSION['admin_username'];
+header('Cache-Control: no-store, private');
+if (!in_array($action, ['list', 'add', 'edit', 'delete'], true)) {
+    $action = 'list';
+}
+
 if (!ensureProductStockColumn($conn)) {
     http_response_code(500);
     exit('Could not prepare the product stock schema. Check the server error log.');
 }
-
-$action = $_POST['action'] ?? $_GET['action'] ?? 'list';
-$validActions = ['list', 'add', 'edit', 'delete'];
-if (!in_array($action, $validActions, true)) {
-    $action = 'list';
+if (!ensureSalesAnalyticsSchema($conn)) {
+    http_response_code(500);
+    exit('Could not prepare the sales analytics schema. Check the server error log.');
 }
 
 $error_msg = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($action, ['add', 'edit', 'delete'], true) && !$csrfValid) {
+    $error_msg = 'The form expired. Please reload and try again.';
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'logout' && !$csrfValid) {
+    $error_msg = 'The sign-out form expired. Please reload and try again.';
+    $action = 'list';
+}
 $product = null;
 $id = filter_var($_POST['id'] ?? $_GET['id'] ?? null, FILTER_VALIDATE_INT);
+
+function saveProductActivity(mysqli $connection, ?int $productId, string $productName, string $action, string $actor, ?array $oldValues, ?array $newValues): bool
+{
+    $statement = $connection->prepare('INSERT INTO product_activity (product_id, product_name, action, actor, old_values, new_values) VALUES (?, ?, ?, ?, ?, ?)');
+    if (!$statement) {
+        error_log('Could not prepare product activity log: ' . $connection->error);
+        return false;
+    }
+
+    $oldJson = $oldValues === null ? null : json_encode($oldValues, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $newJson = $newValues === null ? null : json_encode($newValues, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (($oldValues !== null && $oldJson === false) || ($newValues !== null && $newJson === false)) {
+        $statement->close();
+        error_log('Could not encode product activity details.');
+        return false;
+    }
+
+    $statement->bind_param('isssss', $productId, $productName, $action, $actor, $oldJson, $newJson);
+    $saved = $statement->execute();
+    if (!$saved) {
+        error_log('Could not save product activity log: ' . $statement->error);
+    }
+    $statement->close();
+    return $saved;
+}
+
+function productActivitySnapshot(array $product): array
+{
+    return [
+        'name' => (string) $product['name'],
+        'description' => hash('sha256', (string) ($product['description'] ?? '')),
+        'price' => $product['price'] === null ? null : (float) $product['price'],
+        'cost_price' => $product['cost_price'] === null ? null : (float) $product['cost_price'],
+        'stock' => (int) $product['stock'],
+        'image' => (string) ($product['image'] ?? ''),
+    ];
+}
 
 if ($action === 'edit' || $action === 'delete') {
     if (!$id || $id < 1) {
@@ -36,32 +184,56 @@ if ($action === 'edit' || $action === 'delete') {
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'delete') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'delete' && $csrfValid) {
+    $conn->begin_transaction();
     $stmt = $conn->prepare('DELETE FROM products WHERE id = ?');
+    if (!$stmt) {
+        $conn->rollback();
+        http_response_code(500);
+        exit('Could not prepare product deletion: ' . htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8'));
+    }
     $stmt->bind_param('i', $id);
 
-    if ($stmt->execute()) {
+    $deleteSucceeded = $stmt->execute();
+    $activitySucceeded = $deleteSucceeded && saveProductActivity($conn, (int) $id, (string) $product['name'], 'delete', $adminUsername, productActivitySnapshot($product), null);
+    $transactionCommitted = $activitySucceeded && $conn->commit();
+    if ($transactionCommitted) {
         $stmt->close();
         header('Location: index.php');
         exit;
     }
 
-    $error_msg = 'Error deleting product: ' . $stmt->error;
+    $error_msg = $deleteSucceeded
+        ? 'The product could not be deleted because its activity record could not be saved.'
+        : 'Error deleting product: ' . $stmt->error;
+    $conn->rollback();
     $stmt->close();
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === 'edit')) {
-    $name = trim($_POST['name'] ?? '');
-    $description = trim($_POST['description'] ?? '');
-    $priceInput = $_POST['price'] ?? '';
-    $stockInput = $_POST['stock'] ?? '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === 'edit') && $csrfValid) {
+    $nameInput = $_POST['name'] ?? '';
+    $descriptionInput = $_POST['description'] ?? '';
+    $name = is_string($nameInput) ? trim($nameInput) : '';
+    $description = is_string($descriptionInput) ? trim($descriptionInput) : '';
+    $priceInput = is_string($_POST['price'] ?? null) ? $_POST['price'] : '';
+    $costPriceInput = is_string($_POST['cost_price'] ?? null) ? $_POST['cost_price'] : '';
+    $stockInput = is_string($_POST['stock'] ?? null) ? $_POST['stock'] : '';
     $stockDigits = is_string($stockInput) && preg_match('/^\d+$/D', $stockInput) ? ltrim($stockInput, '0') : false;
     $stock = $stockDigits === false
         ? false
         : filter_var($stockDigits === '' ? '0' : $stockDigits, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 2147483647]]);
 
-    if ($name === '' || $description === '' || !is_numeric($priceInput) || (float) $priceInput < 0 || $stock === false) {
-        $error_msg = 'Please provide a name, description, valid non-negative price, and whole-number stock amount.';
+    $moneyPattern = '/^\d{1,8}(?:\.\d{1,2})?$/D';
+    $priceValid = preg_match($moneyPattern, $priceInput) === 1 && is_finite((float) $priceInput) && (float) $priceInput <= 99999999.99;
+    $costPrice = null;
+    $costPriceValid = is_string($costPriceInput) && trim($costPriceInput) === '';
+    if (trim($costPriceInput) !== '' && preg_match($moneyPattern, $costPriceInput) === 1 && is_finite((float) $costPriceInput) && (float) $costPriceInput <= 99999999.99) {
+        $costPrice = (float) $costPriceInput;
+        $costPriceValid = true;
+    }
+
+    if ($name === '' || $description === '' || !$priceValid || !$costPriceValid || $stock === false) {
+        $error_msg = 'Please provide a name, description, valid non-negative price and cost, and whole-number stock amount.';
     }
 
     $imagePath = $action === 'edit' ? $product['image'] : '';
@@ -137,55 +309,168 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === '
     }
 
     if ($error_msg === '') {
+        $price = (float) $priceInput;
+        $conn->begin_transaction();
         if ($action === 'add') {
-            $stmt = $conn->prepare('INSERT INTO products (name, description, price, image, stock) VALUES (?, ?, ?, ?, ?)');
-            $price = (float) $priceInput;
-            $stmt->bind_param('ssdsi', $name, $description, $price, $imagePath, $stock);
+            $stmt = $conn->prepare('INSERT INTO products (name, description, price, cost_price, image, stock) VALUES (?, ?, ?, ?, ?, ?)');
+            if ($stmt) {
+                $stmt->bind_param('ssddsi', $name, $description, $price, $costPrice, $imagePath, $stock);
+            }
         } else {
-            $stmt = $conn->prepare('UPDATE products SET name = ?, description = ?, price = ?, image = ?, stock = ? WHERE id = ?');
-            $price = (float) $priceInput;
-            $stmt->bind_param('ssdsii', $name, $description, $price, $imagePath, $stock, $id);
+            $stmt = $conn->prepare('UPDATE products SET name = ?, description = ?, price = ?, cost_price = ?, image = ?, stock = ? WHERE id = ?');
+            if ($stmt) {
+                $stmt->bind_param('ssddsii', $name, $description, $price, $costPrice, $imagePath, $stock, $id);
+            }
         }
 
-        if ($stmt->execute()) {
-            $stmt->close();
+        if ($stmt && $stmt->execute()) {
+            $savedId = $action === 'add' ? (int) $conn->insert_id : (int) $id;
+            $newValues = [
+                'name' => $name,
+                'description' => hash('sha256', $description),
+                'price' => $price,
+                'cost_price' => $costPrice,
+                'stock' => $stock,
+                'image' => $imagePath,
+            ];
+            $oldValues = $action === 'edit' ? productActivitySnapshot($product) : null;
+            $activitySaved = saveProductActivity(
+                $conn,
+                $savedId,
+                $name,
+                $action,
+                $adminUsername,
+                $oldValues,
+                $newValues
+            );
+            if (!$activitySaved || !$conn->commit()) {
+                $conn->rollback();
+                $error_msg = 'Product and its activity record could not be saved.';
+                if ($stmt) {
+                    $stmt->close();
+                }
+            } else {
+                $stmt->close();
 
-            if ($action === 'edit' && $imageChanged && !empty($product['image'])) {
-                $oldImage = $product['image'];
-                if ($oldImage === 'img/products/' . basename($oldImage)) {
-                    $oldImagePath = __DIR__ . '/../' . $oldImage;
-                    if (is_file($oldImagePath)) {
-                        unlink($oldImagePath);
+                if ($action === 'edit' && $imageChanged && !empty($product['image'])) {
+                    $oldImage = $product['image'];
+                    if ($oldImage === 'img/products/' . basename($oldImage)) {
+                        $oldImagePath = __DIR__ . '/../' . $oldImage;
+                        if (is_file($oldImagePath)) {
+                            unlink($oldImagePath);
+                        }
                     }
                 }
-            }
 
-            header('Location: index.php');
-            exit;
+                header('Location: index.php');
+                exit;
+            }
         }
 
-        $error_msg = 'Error saving product: ' . $stmt->error;
-        $stmt->close();
+        if ($error_msg === '') {
+            $error_msg = 'Error saving product: ' . ($stmt ? $stmt->error : $conn->error);
+            if ($stmt) {
+                $stmt->close();
+            }
+            $conn->rollback();
+        }
         if ($uploadedImagePath !== '') {
             unlink(__DIR__ . '/../' . $uploadedImagePath);
         }
     }
 
     if ($action === 'edit') {
-        $product['name'] = $_POST['name'] ?? $name;
-        $product['description'] = $_POST['description'] ?? $description;
+        $product['name'] = $name;
+        $product['description'] = $description;
         $product['price'] = $priceInput;
+        $product['cost_price'] = $costPriceInput;
         $product['stock'] = $stockInput;
         $product['image'] = $uploadedImagePath !== '' ? ($product['image'] ?? '') : $imagePath;
     }
 }
 
+$formName = is_string($_POST['name'] ?? null) ? $_POST['name'] : (string) ($product['name'] ?? '');
+$formDescription = is_string($_POST['description'] ?? null) ? $_POST['description'] : (string) ($product['description'] ?? '');
+$formPrice = is_string($_POST['price'] ?? null) ? $_POST['price'] : (string) ($product['price'] ?? '');
+$formCostPrice = is_string($_POST['cost_price'] ?? null) ? $_POST['cost_price'] : (string) ($product['cost_price'] ?? '');
+$formStock = is_string($_POST['stock'] ?? null) ? $_POST['stock'] : (string) ($product['stock'] ?? '0');
+$formImageUrl = is_string($_POST['image_url'] ?? null) ? $_POST['image_url'] : '';
+
+$todayStart = new DateTimeImmutable('today', new DateTimeZone('Asia/Phnom_Penh'));
+$tomorrowStart = $todayStart->modify('+1 day');
+$yesterdayStart = $todayStart->modify('-1 day');
+$salesSummaryStatement = $conn->prepare('SELECT COALESCE(SUM(quantity), 0) AS units, COALESCE(SUM(unit_price * quantity), 0) AS revenue, COALESCE(SUM(CASE WHEN unit_cost IS NOT NULL THEN (unit_price - unit_cost) * quantity ELSE 0 END), 0) AS known_profit, COALESCE(SUM(CASE WHEN unit_cost IS NULL THEN quantity ELSE 0 END), 0) AS unknown_cost_units FROM sales_orders WHERE created_at >= ? AND created_at < ?');
+if (!$salesSummaryStatement) {
+    http_response_code(500);
+    exit('Could not prepare the daily sales summary: ' . htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8'));
+}
+$todayFrom = $todayStart->format('Y-m-d H:i:s');
+$todayUntil = $tomorrowStart->format('Y-m-d H:i:s');
+$salesSummaryStatement->bind_param('ss', $todayFrom, $todayUntil);
+if (!$salesSummaryStatement->execute()) {
+    http_response_code(500);
+    exit('Could not load today\'s sales summary: ' . htmlspecialchars($salesSummaryStatement->error, ENT_QUOTES, 'UTF-8'));
+}
+$todaySales = $salesSummaryStatement->get_result()->fetch_assoc();
+$yesterdayFrom = $yesterdayStart->format('Y-m-d H:i:s');
+$yesterdayUntil = $todayStart->format('Y-m-d H:i:s');
+$salesSummaryStatement->bind_param('ss', $yesterdayFrom, $yesterdayUntil);
+if (!$salesSummaryStatement->execute()) {
+    http_response_code(500);
+    exit('Could not load yesterday\'s sales summary: ' . htmlspecialchars($salesSummaryStatement->error, ENT_QUOTES, 'UTF-8'));
+}
+$yesterdaySales = $salesSummaryStatement->get_result()->fetch_assoc();
+$salesSummaryStatement->close();
+
+$salesStatement = $conn->prepare('SELECT customer_name, product_name, unit_price, quantity, location, phone_number, created_at FROM sales_orders ORDER BY created_at DESC, id DESC LIMIT 50');
+$activityStatement = $conn->prepare('SELECT product_id, product_name, action, actor, old_values, new_values, created_at FROM product_activity ORDER BY created_at DESC, id DESC LIMIT 50');
+if (!$salesStatement) {
+    error_log('Could not prepare sales history query: ' . $conn->error);
+    http_response_code(500);
+    exit('Could not prepare sales history: ' . htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8'));
+}
+if (!$activityStatement) {
+    error_log('Could not prepare product activity query: ' . $conn->error);
+    $salesStatement->close();
+    http_response_code(500);
+    exit('Could not prepare product activity: ' . htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8'));
+}
+if (!$salesStatement->execute()) {
+    $queryError = $salesStatement->error;
+    error_log('Could not execute sales history query: ' . $queryError);
+    $salesStatement->close();
+    $activityStatement->close();
+    http_response_code(500);
+    exit('Could not load sales history: ' . htmlspecialchars($queryError, ENT_QUOTES, 'UTF-8'));
+}
+$salesHistory = $salesStatement->get_result();
+if (!$salesHistory) {
+    error_log('Could not retrieve sales history result: ' . $salesStatement->error);
+    $salesStatement->close();
+    $activityStatement->close();
+    http_response_code(500);
+    exit('Could not retrieve sales history.');
+}
+if (!$activityStatement->execute()) {
+    $queryError = $activityStatement->error;
+    error_log('Could not execute product activity query: ' . $queryError);
+    $salesStatement->close();
+    $activityStatement->close();
+    http_response_code(500);
+    exit('Could not load product activity: ' . htmlspecialchars($queryError, ENT_QUOTES, 'UTF-8'));
+}
+$activityHistory = $activityStatement->get_result();
+$salesStatement->close();
+$activityStatement->close();
+
 $result = $conn->query('SELECT * FROM products ORDER BY id DESC');
 $lowStockResult = $conn->query('SELECT name, stock FROM products WHERE stock <= ' . LOW_STOCK_THRESHOLD . ' ORDER BY stock ASC, name ASC');
-if (!$result || !$lowStockResult) {
+$inventoryResult = $conn->query('SELECT COALESCE(SUM(stock), 0) AS units FROM products');
+if (!$result || !$lowStockResult || !$inventoryResult) {
     http_response_code(500);
     exit('Could not load product inventory: ' . htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8'));
 }
+$inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
 ?>
 <!DOCTYPE html>
 <html lang="km">
@@ -614,6 +899,65 @@ if (!$result || !$lowStockResult) {
             font-size: 13px;
         }
 
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .analytics-card {
+            padding: 20px;
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(20, 25, 55, 0.82));
+        }
+
+        .analytics-card span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .analytics-card strong {
+            display: block;
+            margin-top: 8px;
+            color: #fff;
+            font-size: 25px;
+        }
+
+        .analytics-card small {
+            display: block;
+            margin-top: 6px;
+            color: var(--text-dim);
+        }
+
+        .analytics-section {
+            margin: 26px 0;
+        }
+
+        .analytics-section h3 {
+            margin: 0 0 12px;
+            color: #fff;
+            font-size: 19px;
+        }
+
+        .analytics-table-wrap {
+            overflow-x: auto;
+        }
+
+        .analytics-table-wrap table {
+            min-width: 760px;
+        }
+
+        .analytics-table-wrap th,
+        .analytics-table-wrap td {
+            white-space: nowrap;
+        }
+
+        .trend-up { color: #34d399 !important; }
+        .trend-down { color: #fca5a5 !important; }
+
         .stock-badge {
             display: inline-block;
             padding: 5px 10px;
@@ -740,24 +1084,30 @@ if (!$result || !$lowStockResult) {
 
                 <form action="index.php" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="<?= $isEditing ? 'edit' : 'add' ?>">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                     <?php if ($isEditing): ?>
                         <input type="hidden" name="id" value="<?= (int) $id ?>">
                     <?php endif; ?>
                     <div class="form-group">
                         <label><i class="fas fa-tag" style="color: var(--cyber-cyan); margin-right: 6px;"></i> ឈ្មោះកម្មវិធី (Product Name)</label>
-                        <input type="text" name="name" class="cyber-input" value="<?= htmlspecialchars($_POST['name'] ?? $product['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                        <input type="text" name="name" class="cyber-input" value="<?= htmlspecialchars($formName, ENT_QUOTES, 'UTF-8') ?>" required>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-align-left" style="color: var(--cyber-purple); margin-right: 6px;"></i> ព័ត៌មានលម្អិត (Description)</label>
-                        <textarea name="description" class="cyber-input" required><?= htmlspecialchars($_POST['description'] ?? $product['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                        <textarea name="description" class="cyber-input" required><?= htmlspecialchars($formDescription, ENT_QUOTES, 'UTF-8') ?></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-coins" style="color: var(--cyber-emerald); margin-right: 6px;"></i> Cost price (your purchase cost)</label>
+                        <input type="number" step="0.01" min="0" max="99999999.99" name="cost_price" class="cyber-input" value="<?= htmlspecialchars($formCostPrice, ENT_QUOTES, 'UTF-8') ?>" placeholder="Leave empty if unknown">
+                        <div class="image-url-hint">Used to calculate profit or loss. Existing products need their cost entered before profit can be calculated.</div>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-dollar-sign" style="color: var(--cyber-emerald); margin-right: 6px;"></i> តម្លៃជាដុល្លារ (Price in USD)</label>
-                        <input type="number" step="0.01" min="0" name="price" class="cyber-input" value="<?= htmlspecialchars((string) ($_POST['price'] ?? $product['price'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
+                        <input type="number" step="0.01" min="0" max="99999999.99" name="price" class="cyber-input" value="<?= htmlspecialchars($formPrice, ENT_QUOTES, 'UTF-8') ?>" required>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-boxes-stacked" style="color: var(--cyber-amber); margin-right: 6px;"></i> ចំនួនស្តុក (Stock amount)</label>
-                        <input type="number" step="1" min="0" max="2147483647" name="stock" class="cyber-input" value="<?= htmlspecialchars((string) ($_POST['stock'] ?? $product['stock'] ?? '0'), ENT_QUOTES, 'UTF-8') ?>" required>
+                        <input type="number" step="1" min="0" max="2147483647" name="stock" class="cyber-input" value="<?= htmlspecialchars($formStock, ENT_QUOTES, 'UTF-8') ?>" required>
                         <div class="image-url-hint">Set to 0 to hide this product from the storefront. Low-stock alert at <?= LOW_STOCK_THRESHOLD ?> or fewer.</div>
                     </div>
                     <div class="form-group">
@@ -770,7 +1120,8 @@ if (!$result || !$lowStockResult) {
                         <?php endif; ?>
                         <?php
                         $currentImageIsUrl = !empty($product['image']) && preg_match('~^https?://~i', $product['image']);
-                        $selectedImageSource = $_POST['image_source'] ?? ($currentImageIsUrl ? 'url' : 'upload');
+                        $postedImageSource = $_POST['image_source'] ?? null;
+                        $selectedImageSource = is_string($postedImageSource) ? $postedImageSource : ($currentImageIsUrl ? 'url' : 'upload');
                         ?>
                         <div class="image-source-options" role="radiogroup" aria-label="Image source">
                             <label class="image-source-option">
@@ -792,7 +1143,7 @@ if (!$result || !$lowStockResult) {
                             </div>
                         </div>
                         <div class="image-source-panel" id="imageUrlPanel" hidden>
-                            <input type="url" name="image_url" id="imageUrlInput" class="cyber-input" maxlength="255" placeholder="https://example.com/product-image.jpg" value="<?= htmlspecialchars($_POST['image_url'] ?? ($currentImageIsUrl ? $product['image'] : ''), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="url" name="image_url" id="imageUrlInput" class="cyber-input" maxlength="255" placeholder="https://example.com/product-image.jpg" value="<?= htmlspecialchars($formImageUrl !== '' ? $formImageUrl : ($currentImageIsUrl ? $product['image'] : ''), ENT_QUOTES, 'UTF-8') ?>">
                             <div class="image-url-hint">Use a direct image link starting with http:// or https://.</div>
                         </div>
                     </div>
@@ -814,6 +1165,7 @@ if (!$result || !$lowStockResult) {
                 <form action="index.php" method="POST" class="delete-confirmation-actions">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="<?= (int) $id ?>">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                     <a href="index.php" class="delete-cancel-button" style="display: inline-flex; align-items: center; text-decoration: none;">បោះបង់</a>
                     <button type="submit" class="delete-confirm-button"><i class="fas fa-trash"></i> លុបកម្មវិធី</button>
                 </form>
@@ -837,11 +1189,54 @@ if (!$result || !$lowStockResult) {
                 <a href="../home/index.php" class="ios-glass-btn">
                     <i class="fas fa-external-link-alt"></i> មើលទំព័រមុខ
                 </a>
-                <a href="../home/index.php" class="ios-glass-btn" style="border-color: rgba(255,75,75,0.4); color: #ff6b6b;">
-                    <i class="fas fa-sign-out-alt"></i> ចាកចេញ
-                </a>
+                <form action="index.php" method="post" style="display:inline-flex;">
+                    <input type="hidden" name="action" value="logout">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <button type="submit" class="ios-glass-btn" style="border-color: rgba(255,75,75,0.4); color: #ff6b6b; cursor:pointer;">
+                        <i class="fas fa-sign-out-alt"></i> Sign out · <?= htmlspecialchars($adminUsername, ENT_QUOTES, 'UTF-8') ?>
+                    </button>
+                </form>
             </div>
         </div>
+        <?php if ($error_msg !== ''): ?>
+            <div class="admin-error"><?= htmlspecialchars($error_msg, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; ?>
+
+        <?php
+        $todayUnits = (int) $todaySales['units'];
+        $yesterdayUnits = (int) $yesterdaySales['units'];
+        $unitTrendClass = $todayUnits > $yesterdayUnits ? 'trend-up' : ($todayUnits < $yesterdayUnits ? 'trend-down' : '');
+        if ($yesterdayUnits > 0) {
+            $unitTrend = sprintf('%s%.1f%% vs yesterday', $todayUnits > $yesterdayUnits ? '+' : '', (($todayUnits - $yesterdayUnits) / $yesterdayUnits) * 100);
+        } elseif ($todayUnits > 0) {
+            $unitTrend = 'Sales started today · 0 yesterday';
+        } else {
+            $unitTrend = 'No sales today or yesterday';
+        }
+        $knownProfit = (float) $todaySales['known_profit'];
+        ?>
+        <section class="analytics-grid" aria-label="Sales and inventory summary">
+            <article class="analytics-card">
+                <span>Units sold today</span>
+                <strong><?= $todayUnits ?></strong>
+                <small class="<?= $unitTrendClass ?>"><?= htmlspecialchars($unitTrend, ENT_QUOTES, 'UTF-8') ?> · yesterday: <?= $yesterdayUnits ?></small>
+            </article>
+            <article class="analytics-card">
+                <span>Sales revenue today</span>
+                <strong>$<?= number_format((float) $todaySales['revenue'], 2) ?></strong>
+                <small>Orders accepted by Telegram today</small>
+            </article>
+            <article class="analytics-card">
+                <span>Profit / loss today (known costs)</span>
+                <strong class="<?= $knownProfit >= 0 ? 'trend-up' : 'trend-down' ?>"><?= $knownProfit < 0 ? '-' : '' ?>$<?= number_format(abs($knownProfit), 2) ?></strong>
+                <small><?= (int) $todaySales['unknown_cost_units'] ?> sale(s) excluded · cost not set</small>
+            </article>
+            <article class="analytics-card">
+                <span>Current units in stock</span>
+                <strong><?= $inventoryUnits ?></strong>
+                <small>Across all listed products</small>
+            </article>
+        </section>
 
         <?php if ($lowStockResult->num_rows > 0): ?>
             <section class="inventory-alert" role="status">
@@ -857,6 +1252,68 @@ if (!$result || !$lowStockResult) {
             </section>
         <?php endif; ?>
 
+        <section class="analytics-section">
+            <h3><i class="fas fa-receipt" style="color:var(--cyber-cyan);"></i> Recent purchases (latest 50)</h3>
+            <div class="admin-table-glass analytics-table-wrap">
+                <table>
+                    <thead><tr><th>Buyer</th><th>Product</th><th>Price</th><th>Amount</th><th>Location</th><th>Phone</th><th>Purchased at</th></tr></thead>
+                    <tbody>
+                        <?php if ($salesHistory->num_rows > 0): ?>
+                            <?php while ($sale = $salesHistory->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($sale['customer_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($sale['product_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td>$<?= number_format((float) $sale['unit_price'], 2) ?></td>
+                                    <td><?= (int) $sale['quantity'] ?></td>
+                                    <td><?= htmlspecialchars($sale['location'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($sale['phone_number'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($sale['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr><td colspan="7">No accepted purchases have been recorded yet.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="analytics-section">
+            <h3><i class="fas fa-clock-rotate-left" style="color:var(--cyber-purple);"></i> Product activity (latest 50)</h3>
+            <div class="admin-table-glass analytics-table-wrap">
+                <table>
+                    <thead><tr><th>Action</th><th>Product</th><th>Changed fields</th><th>Who</th><th>When</th></tr></thead>
+                    <tbody>
+                        <?php if ($activityHistory->num_rows > 0): ?>
+                            <?php while ($activity = $activityHistory->fetch_assoc()): ?>
+                                <?php
+                                $oldActivityValues = $activity['old_values'] === null ? null : json_decode($activity['old_values'], true);
+                                $newActivityValues = $activity['new_values'] === null ? null : json_decode($activity['new_values'], true);
+                                $changedFields = [];
+                                if (is_array($oldActivityValues) && is_array($newActivityValues)) {
+                                    foreach (['name', 'description', 'price', 'cost_price', 'stock', 'image'] as $field) {
+                                        if (($oldActivityValues[$field] ?? null) !== ($newActivityValues[$field] ?? null)) {
+                                            $changedFields[] = $field;
+                                        }
+                                    }
+                                }
+                                ?>
+                                <tr>
+                                    <td><?= htmlspecialchars(ucfirst($activity['action']), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($activity['product_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= $changedFields ? htmlspecialchars(implode(', ', $changedFields), ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                                    <td><?= htmlspecialchars($activity['actor'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($activity['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr><td colspan="5">No product activity has been recorded yet.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <!-- Table -->
         <div class="admin-table-glass">
             <table>
@@ -867,6 +1324,7 @@ if (!$result || !$lowStockResult) {
                         <th>ឈ្មោះកម្មវិធី</th>
                         <th>ព័ត៌មានលម្អិត</th>
                         <th>តម្លៃ</th>
+                        <th>Cost</th>
                         <th>ស្តុក (Stock)</th>
                         <th style="width: 180px; text-align: center;">សកម្មភាព</th>
                     </tr>
@@ -892,6 +1350,7 @@ if (!$result || !$lowStockResult) {
                                         $<?= number_format($row['price'], 2) ?>
                                     </span>
                                 </td>
+                                <td><?= $row['cost_price'] === null ? 'Not set' : '$' . number_format((float) $row['cost_price'], 2) ?></td>
                                 <td>
                                     <?php
                                     $stockAmount = (int) $row['stock'];
@@ -913,7 +1372,7 @@ if (!$result || !$lowStockResult) {
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
                                 មិនទាន់មានទិន្នន័យកម្មវិធីនៅឡើយទេ (No products found)
                             </td>
                         </tr>
@@ -937,6 +1396,7 @@ if (!$result || !$lowStockResult) {
     <form action="index.php" method="POST" id="deleteProductForm" hidden>
         <input type="hidden" name="action" value="delete">
         <input type="hidden" name="id" id="deleteProductId">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
     </form>
     <script>
         (() => {

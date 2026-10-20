@@ -979,6 +979,14 @@ if ($page === 'about' && !$is_checkout) {
                 });
 
                 const orderForm = document.getElementById('checkoutOrderForm');
+                const successModal = document.getElementById('cyberSuccessModal');
+                const closeSuccessModal = () => {
+                    successModal.hidden = true;
+                    document.body.classList.remove('buy-modal-open');
+                };
+                const closeNotifyButton = document.getElementById('closeNotifyBtn');
+                closeNotifyButton.addEventListener('click', closeSuccessModal);
+
                 const receiptInput = document.getElementById('checkoutReceipt');
                 const receiptFilename = document.getElementById('checkoutReceiptFilename');
                 const orderStatus = document.getElementById('checkoutOrderStatus');
@@ -1024,9 +1032,8 @@ if ($page === 'about' && !$is_checkout) {
                             throw new Error(data.message || 'មិនអាចបញ្ជូនការបញ្ជាទិញបានទេ។');
                         }
                         modal.hidden = true;
-                        const successModal = document.getElementById('cyberSuccessModal');
                         successModal.hidden = false;
-                        document.getElementById('closeNotifyBtn').focus();
+                        closeNotifyButton.focus();
                     })
                     .catch((error) => {
                         orderStatus.dataset.state = 'error';
@@ -1040,6 +1047,12 @@ if ($page === 'about' && !$is_checkout) {
 
                 window.history.replaceState({}, document.title, 'index.php');
                 dialog.focus();
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape' && !successModal.hidden) {
+                        closeSuccessModal();
+                    }
+                });
             })();
         </script>
     <?php endif; ?>
