@@ -1,50 +1,41 @@
 <?php
-include 'db.php';
+declare(strict_types=1);
 
-echo '<link rel="icon" href="../img/logome.png" type="image/x-icon">';
-echo '<link rel="apple-touch-icon" href="../img/logome.png">';
+require_once __DIR__ . '/db.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name    = $conn->real_escape_string($_POST['name']);
-    $email   = $conn->real_escape_string($_POST['email']);
-    $message = $conn->real_escape_string($_POST['message']);
-
-    $sql = "INSERT INTO messages (name, email, message)
-            VALUES ('$name', '$email', '$message')";
-
-    if ($conn->query($sql) === TRUE) {
-        echo "<div style='
-            min-height:100vh;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            background-image:url(../img/logome.png);
-            background-size:cover;
-            font-family:Arial,sans-serif;
-        '>
-            <div style='background:#e8f5e9;padding:32px 28px;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.08);text-align:center;border:2px solid #4caf50;color:#218838;font-weight:bold;'>
-                Message sent successfully!
-                <script>
-                    setTimeout(function(){
-                        window.location.href = '../home/index.php';
-                    }, 500);
-                </script>
-            </div>
-        </div>";
-    } else {
-        echo "<div style='
-            min-height:100vh;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            background-image:url(../img/logome.png);
-            background-size:cover;
-            font-family:Arial,sans-serif;
-        '>
-            <div style='background:#fff;padding:32px 28px;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.08);text-align:center;color:#b71c1c;border:2px solid #f44336;font-weight:bold;'>
-                Error: " . $conn->error . "
-            </div>
-        </div>";
-    }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    exit('Method not allowed.');
 }
-?>
+
+$name = is_string($_POST['name'] ?? null) ? trim($_POST['name']) : '';
+$email = is_string($_POST['email'] ?? null) ? trim($_POST['email']) : '';
+$message = is_string($_POST['message'] ?? null) ? trim($_POST['message']) : '';
+if (
+    $name === ''
+    || strlen($name) > 100
+    || strlen($email) > 100
+    || filter_var($email, FILTER_VALIDATE_EMAIL) === false
+    || $message === ''
+    || strlen($message) > 10000
+) {
+    header('Location: index.php?error=1', true, 303);
+    exit;
+}
+
+$statement = $conn->prepare('INSERT INTO messages (name, email, message) VALUES (?, ?, ?)');
+if (!$statement) {
+    error_log('Could not prepare customer message insert: ' . $conn->error);
+    header('Location: index.php?error=1', true, 303);
+    exit;
+}
+$statement->bind_param('sss', $name, $email, $message);
+$saved = $statement->execute();
+if (!$saved) {
+    error_log('Could not save customer message: ' . $statement->error);
+}
+$statement->close();
+
+header('Location: index.php?' . ($saved ? 'success=1' : 'error=1'), true, 303);
+exit;

@@ -3,6 +3,9 @@ $nav_home_url = $nav_home_url ?? 'index.php';
 $nav_about_url = $nav_about_url ?? 'index.php?page=about';
 $nav_support_url = $nav_support_url ?? '../customer-service/index.php';
 $nav_payments_url = $nav_payments_url ?? '#payments';
+$nav_brand_logo = $nav_brand_logo ?? '';
+$nav_store_name = $nav_store_name ?? '4K STORE';
+$nav_contact_url = $nav_contact_url ?? 'https://t.me/netstillloser';
 $nav_admin_url = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/') . '/admin/index.php';
 $nav_active = $nav_active ?? 'home';
 $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
@@ -14,10 +17,10 @@ $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
     <nav class="cyber-island-nav">
         <a href="<?php echo htmlspecialchars($nav_home_url, ENT_QUOTES, 'UTF-8'); ?>" class="brand-emblem">
             <div class="brand-hologram-cube">
-                <img src="<?php echo htmlspecialchars(dirname($nav_home_url) === '.' ? './logo/icon.png' : dirname($nav_home_url) . '/logo/icon.png', ENT_QUOTES, 'UTF-8'); ?>" alt="NET Brand Icon" onerror="this.src='<?php echo htmlspecialchars(dirname($nav_home_url) === '.' ? './logo/logome.png' : dirname($nav_home_url) . '/logo/logome.png', ENT_QUOTES, 'UTF-8'); ?>'">
+                <img src="<?php echo htmlspecialchars($nav_brand_logo !== '' ? $nav_brand_logo : (dirname($nav_home_url) === '.' ? './logo/icon.png' : dirname($nav_home_url) . '/logo/icon.png'), ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($nav_store_name, ENT_QUOTES, 'UTF-8'); ?>" onerror="this.src='<?php echo htmlspecialchars(dirname($nav_home_url) === '.' ? './logo/logome.png' : dirname($nav_home_url) . '/logo/logome.png', ENT_QUOTES, 'UTF-8'); ?>'">
             </div>
             <div class="brand-titles">
-                <h1>4K STORE <span class="dna-badge">V.1.2</span></h1>
+                <h1><?php echo htmlspecialchars($nav_store_name, ENT_QUOTES, 'UTF-8'); ?> <span class="dna-badge">V.1.2</span></h1>
                 <span>ហាងសម្លៀកបំពាក់ និងម៉ូដ</span>
             </div>
         </a>
@@ -40,7 +43,7 @@ $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
         </div>
 
         <div class="nav-actions">
-            <a href="https://t.me/netstillloser" target="_blank" rel="noopener noreferrer" class="cyber-glow-btn" style="padding: 7px 14px; font-size: 13px;">
+            <a href="<?php echo htmlspecialchars($nav_contact_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="cyber-glow-btn" style="padding: 7px 14px; font-size: 13px;">
                 <i class="fab fa-telegram-plane" style="color: #00f0ff;"></i>
                 <span class="nav-action-label">Telegram</span>
             </a>

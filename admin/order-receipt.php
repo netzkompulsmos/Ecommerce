@@ -1,16 +1,14 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../api/db.php';
+require_once __DIR__ . '/../api/admin-auth.php';
 
-if (session_status() !== PHP_SESSION_ACTIVE && !session_start()) {
+if (!ensureAdminSecuritySchema($conn) || !adminStartSession()) {
     http_response_code(500);
-    exit('Could not start the admin session.');
+    exit('Could not prepare the admin session.');
 }
-if (!isset($_SESSION['admin_id'], $_SESSION['admin_username'])) {
-    http_response_code(403);
-    exit('Admin sign-in is required.');
-}
+$currentAdmin = adminRequireLogin($conn);
+adminRequirePermission($currentAdmin, 'orders');
 if (!ensureSalesAnalyticsSchema($conn) || !ensureAdminOperationsSchema($conn)) {
     http_response_code(500);
     exit('Could not prepare private receipt access.');

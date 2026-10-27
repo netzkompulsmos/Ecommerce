@@ -1,5 +1,14 @@
 <?php
-include 'db.php';
+require_once __DIR__ . '/../api/admin-auth.php';
+require_once __DIR__ . '/../admin/primary-navigation.php';
+
+if (!ensureAdminSecuritySchema($conn) || !adminStartSession()) {
+  http_response_code(500);
+  exit('Could not prepare the admin session.');
+}
+$currentAdmin = adminRequireLogin($conn, '../admin/index.php');
+adminRequirePermission($currentAdmin, 'support');
+$csrfToken = adminCsrfToken();
 $result = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
 ?>
 <!DOCTYPE html>
@@ -267,14 +276,12 @@ $result = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
       </div>
 
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="../admin/index.php" class="cyber-glow-btn" style="padding: 8px 18px; font-size: 13.5px;">
-          <i class="fas fa-arrow-left"></i> ត្រឡប់ក្រោយ (Admin)
-        </a>
         <a href="../home/index.php" class="cyber-glow-btn" style="padding: 8px 18px; font-size: 13.5px; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.06);">
           <i class="fas fa-globe"></i> មើលទំព័រមុខ
         </a>
       </div>
     </div>
+    <?php renderAdminPrimaryNavigation($currentAdmin, 'customers'); ?>
 
     <div class="dashboard-table-card">
       <table>
@@ -299,6 +306,7 @@ $result = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                 <td style="color: var(--text-dim); font-size: 12.5px;"><?= $row['created_at'] ?></td>
                 <td style="text-align: center;">
                   <form action="delete-message.php" method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                     <input type="hidden" name="message_id" value="<?= $row['id'] ?>">
                     <button type="submit" class="btn-delete">
                       <i class="fas fa-trash"></i> លុប

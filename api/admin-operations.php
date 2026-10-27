@@ -17,6 +17,9 @@ if (!function_exists('ensureAdminOperationsSchema')) {
                 'receipt_mime' => 'VARCHAR(100) NULL DEFAULT NULL',
                 'inventory_reserved' => 'TINYINT(1) NOT NULL DEFAULT 0',
                 'phone_normalized' => 'VARCHAR(32) NULL DEFAULT NULL',
+                'coupon_id' => 'BIGINT UNSIGNED NULL DEFAULT NULL',
+                'coupon_code' => 'VARCHAR(40) NULL DEFAULT NULL',
+                'discount_amount' => 'DECIMAL(10,2) NOT NULL DEFAULT 0.00',
             ],
         ];
 
@@ -35,7 +38,7 @@ if (!function_exists('ensureAdminOperationsSchema')) {
         }
 
         $tables = [
-            "CREATE TABLE IF NOT EXISTS customer_profiles (
+            'customer_profiles' => "CREATE TABLE customer_profiles (
                 phone_normalized VARCHAR(32) NOT NULL,
                 phone_number VARCHAR(32) NOT NULL,
                 customer_name VARCHAR(100) NOT NULL,
@@ -46,7 +49,7 @@ if (!function_exists('ensureAdminOperationsSchema')) {
                 PRIMARY KEY (phone_normalized),
                 KEY idx_customer_name (customer_name)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-            "CREATE TABLE IF NOT EXISTS sales_order_history (
+            'sales_order_history' => "CREATE TABLE sales_order_history (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 order_id BIGINT UNSIGNED NOT NULL,
                 event_type VARCHAR(32) NOT NULL,
@@ -61,7 +64,7 @@ if (!function_exists('ensureAdminOperationsSchema')) {
                 KEY idx_order_history_order_id (order_id),
                 KEY idx_order_history_type (event_type)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-            "CREATE TABLE IF NOT EXISTS inventory_adjustments (
+            'inventory_adjustments' => "CREATE TABLE inventory_adjustments (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                 product_id INT NULL DEFAULT NULL,
                 product_name VARCHAR(255) NOT NULL,
@@ -77,8 +80,8 @@ if (!function_exists('ensureAdminOperationsSchema')) {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
         ];
 
-        foreach ($tables as $sql) {
-            if (!$connection->query($sql)) {
+        foreach ($tables as $table => $sql) {
+            if (!applicationTableExists($connection, $table) && !$connection->query($sql)) {
                 error_log('Could not create an admin operations table: ' . $connection->error);
                 return false;
             }
@@ -122,6 +125,79 @@ if (!function_exists('ensureAdminOperationsSchema')) {
                 WHERE phone_normalized IS NOT NULL AND phone_normalized <> ''
                 GROUP BY phone_normalized")) {
                 error_log('Could not migrate legacy customer profiles: ' . $connection->error);
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+
+if (!function_exists('ensureAdminSecuritySchema')) {
+    function ensureAdminSecuritySchema(mysqli $connection): bool
+    {
+        $columns = [
+            'role' => "VARCHAR(20) NOT NULL DEFAULT 'admin'",
+            'permissions' => 'TEXT NULL',
+            'is_active' => 'TINYINT(1) NOT NULL DEFAULT 1',
+        ];
+
+        foreach ($columns as $column => $definition) {
+            $columnResult = $connection->query("SHOW COLUMNS FROM admins LIKE '$column'");
+            if (!$columnResult) {
+                error_log('Could not check admin security schema: ' . $connection->error);
+                return false;
+            }
+            if ($columnResult->num_rows === 0 && !$connection->query("ALTER TABLE admins ADD `$column` $definition")) {
+                error_log('Could not add admin security column: ' . $connection->error);
+                return false;
+            }
+        }
+
+        $tables = [
+            'admin_login_attempts' => "CREATE TABLE admin_login_attempts (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                ip_address VARCHAR(45) NOT NULL,
+                identity_hash CHAR(64) NOT NULL,
+                attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                KEY idx_admin_login_ip_time (ip_address, attempted_at),
+                KEY idx_admin_login_identity_time (identity_hash, attempted_at),
+                KEY idx_admin_login_attempted (attempted_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            'admin_sessions' => "CREATE TABLE admin_sessions (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                admin_id INT NOT NULL,
+                session_hash CHAR(64) NOT NULL,
+                ip_address VARCHAR(45) NULL DEFAULT NULL,
+                user_agent VARCHAR(255) NOT NULL DEFAULT '',
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_admin_session_hash (session_hash),
+                KEY idx_admin_session_admin (admin_id),
+                KEY idx_admin_session_expiry (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            'admin_audit_log' => "CREATE TABLE admin_audit_log (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                actor_id INT NULL DEFAULT NULL,
+                actor_username VARCHAR(100) NOT NULL,
+                action VARCHAR(50) NOT NULL,
+                target_admin_id INT NULL DEFAULT NULL,
+                old_values TEXT NULL,
+                new_values TEXT NULL,
+                ip_address VARCHAR(45) NULL DEFAULT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                KEY idx_admin_audit_created (created_at),
+                KEY idx_admin_audit_target (target_admin_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        ];
+
+        foreach ($tables as $table => $sql) {
+            if (!applicationTableExists($connection, $table) && !$connection->query($sql)) {
+                error_log('Could not create an admin security table: ' . $connection->error);
                 return false;
             }
         }
@@ -204,5 +280,144 @@ if (!function_exists('recordInventoryAdjustment')) {
         }
         $statement->close();
         return $saved;
+    }
+}
+
+if (!function_exists('ensureStoreManagementSchema')) {
+    function ensureStoreManagementSchema(mysqli $connection): bool
+    {
+        $tables = [
+            'discount_coupons' => "CREATE TABLE discount_coupons (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                coupon_code VARCHAR(40) NOT NULL,
+                discount_type VARCHAR(12) NOT NULL,
+                discount_value DECIMAL(10,2) NOT NULL,
+                minimum_subtotal DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                max_uses INT UNSIGNED NULL DEFAULT NULL,
+                uses_count INT UNSIGNED NOT NULL DEFAULT 0,
+                starts_at DATETIME NULL DEFAULT NULL,
+                expires_at DATETIME NULL DEFAULT NULL,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                created_by INT NULL DEFAULT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_discount_coupon_code (coupon_code),
+                KEY idx_discount_coupon_active_expiry (is_active, expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            'admin_notifications' => "CREATE TABLE admin_notifications (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                notification_type VARCHAR(32) NOT NULL,
+                title VARCHAR(160) NOT NULL,
+                message VARCHAR(500) NOT NULL,
+                target_url VARCHAR(255) NULL DEFAULT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                read_at DATETIME NULL DEFAULT NULL,
+                PRIMARY KEY (id),
+                KEY idx_admin_notifications_unread (read_at, created_at),
+                KEY idx_admin_notifications_type (notification_type, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        ];
+
+        foreach ($tables as $table => $sql) {
+            if (!applicationTableExists($connection, $table) && !$connection->query($sql)) {
+                error_log("Could not create store-management table $table: " . $connection->error);
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+
+if (!function_exists('createAdminNotification')) {
+    function createAdminNotification(mysqli $connection, string $type, string $title, string $message, ?string $targetUrl = null): bool
+    {
+        $statement = $connection->prepare('INSERT INTO admin_notifications (notification_type, title, message, target_url) VALUES (?, ?, ?, ?)');
+        if (!$statement) {
+            error_log('Could not prepare admin notification: ' . $connection->error);
+            return false;
+        }
+        $statement->bind_param('ssss', $type, $title, $message, $targetUrl);
+        $saved = $statement->execute();
+        if (!$saved) {
+            error_log('Could not save admin notification: ' . $statement->error);
+        }
+        $statement->close();
+        return $saved;
+    }
+}
+
+if (!function_exists('privateDatabaseBackupDirectory')) {
+    function privateDatabaseBackupDirectory(): string
+    {
+        $configuredDirectory = getenv('ECOMMERCE_BACKUP_DIR');
+        if ($configuredDirectory !== false && trim($configuredDirectory) !== '') {
+            return trim($configuredDirectory);
+        }
+
+        $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+        $publicDirectory = is_string($documentRoot) && $documentRoot !== '' ? realpath($documentRoot) : false;
+        $backupRoot = $publicDirectory !== false ? dirname($publicDirectory) : sys_get_temp_dir();
+        return $backupRoot . DIRECTORY_SEPARATOR . 'ecommerce-private-backups';
+    }
+}
+
+if (!function_exists('findAvailableCoupon')) {
+    function findAvailableCoupon(mysqli $connection, string $code): ?array
+    {
+        $statement = $connection->prepare("SELECT id, coupon_code, discount_type, discount_value, minimum_subtotal, max_uses, uses_count
+            FROM discount_coupons
+            WHERE coupon_code = ? AND is_active = 1
+                AND (starts_at IS NULL OR starts_at <= NOW())
+                AND (expires_at IS NULL OR expires_at > NOW())
+                AND (max_uses IS NULL OR uses_count < max_uses)
+            LIMIT 1");
+        if (!$statement) {
+            error_log('Could not prepare coupon lookup: ' . $connection->error);
+            return null;
+        }
+        $statement->bind_param('s', $code);
+        if (!$statement->execute()) {
+            error_log('Could not execute coupon lookup: ' . $statement->error);
+            $statement->close();
+            return null;
+        }
+        $coupon = $statement->get_result()->fetch_assoc();
+        $statement->close();
+        return $coupon ?: null;
+    }
+}
+
+if (!function_exists('calculateCouponDiscount')) {
+    function calculateCouponDiscount(float $subtotal, array $coupon): ?float
+    {
+        if ($subtotal < (float) $coupon['minimum_subtotal']) {
+            return null;
+        }
+        if ($coupon['discount_type'] === 'percent') {
+            return min($subtotal, round($subtotal * (float) $coupon['discount_value'] / 100, 2));
+        }
+        if ($coupon['discount_type'] === 'fixed') {
+            return min($subtotal, round((float) $coupon['discount_value'], 2));
+        }
+        return null;
+    }
+}
+
+if (!function_exists('storeCurrencySymbol')) {
+    function storeCurrencySymbol(mysqli $connection): string
+    {
+        $statement = $connection->prepare("SELECT setting_value FROM system_settings WHERE setting_name = 'currency_symbol' LIMIT 1");
+        if (!$statement || !$statement->execute()) {
+            if ($statement) {
+                $statement->close();
+            }
+            return '$';
+        }
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+        $symbol = is_string($row['setting_value'] ?? null) ? trim($row['setting_value']) : '';
+        return $symbol !== '' ? $symbol : '$';
     }
 }

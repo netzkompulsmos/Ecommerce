@@ -1,29 +1,28 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../api/db.php';
+require_once __DIR__ . '/../api/admin-auth.php';
+require_once __DIR__ . '/primary-navigation.php';
 
-if (session_status() !== PHP_SESSION_ACTIVE && !session_start()) {
+if (!ensureAdminSecuritySchema($conn)) {
+    http_response_code(500);
+    exit('Could not prepare admin security. Check the server error log.');
+}
+if (!adminStartSession()) {
     http_response_code(500);
     exit('Could not start the admin session.');
 }
-if (!isset($_SESSION['admin_id'], $_SESSION['admin_username'])) {
-    header('Location: index.php');
-    exit;
-}
+$currentAdmin = adminRequireLogin($conn);
 
-$adminUsername = (string) $_SESSION['admin_username'];
-$csrfToken = $_SESSION['admin_csrf_token'] ?? '';
-if (!is_string($csrfToken) || $csrfToken === '') {
-    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
-    $csrfToken = $_SESSION['admin_csrf_token'];
-}
+$adminUsername = (string) $currentAdmin['username'];
+$csrfToken = adminCsrfToken();
 header('Cache-Control: no-store, private');
 
-if (!ensureProductStockColumn($conn) || !ensureSalesAnalyticsSchema($conn) || !ensureAdminOperationsSchema($conn)) {
+if (!ensureProductStockColumn($conn) || !ensureSalesAnalyticsSchema($conn) || !ensureAdminOperationsSchema($conn) || !ensureStoreManagementSchema($conn)) {
     http_response_code(500);
     exit('Could not prepare admin operations. Check the server error log.');
 }
+$currencySymbol = storeCurrencySymbol($conn);
 
 function operationsEscape(string $value): string
 {
@@ -47,6 +46,15 @@ $view = $_GET['view'] ?? 'orders';
 if (!is_string($view) || !in_array($view, ['orders', 'inventory', 'customers', 'reports'], true)) {
     $view = 'orders';
 }
+$viewPermissions = ['orders' => 'orders', 'inventory' => 'inventory', 'customers' => 'customers', 'reports' => 'reports'];
+if (!adminHasPermission($currentAdmin, $viewPermissions[$view])) {
+    $availableViews = array_keys(array_filter($viewPermissions, static fn(string $permission): bool => adminHasPermission($currentAdmin, $permission)));
+    if (!$availableViews) {
+        http_response_code(403);
+        exit('You do not have permission to access operations.');
+    }
+    $view = $availableViews[0];
+}
 $errorMessage = '';
 $flashMessage = is_string($_SESSION['operations_flash'] ?? null) ? $_SESSION['operations_flash'] : '';
 unset($_SESSION['operations_flash']);
@@ -57,7 +65,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMessage = 'The form expired. Reload the page and try again.';
     } else {
         $operation = $_POST['operation'] ?? '';
-        if ($operation === 'verify_payment') {
+        $operationPermissions = [
+            'verify_payment' => 'orders',
+            'reject_payment' => 'orders',
+            'record_refund' => 'orders',
+            'change_order_status' => 'orders',
+            'adjust_stock' => 'inventory',
+            'set_threshold' => 'inventory',
+            'save_customer' => 'customers',
+        ];
+        if ($operation !== 'logout' && (!isset($operationPermissions[$operation]) || !adminHasPermission($currentAdmin, $operationPermissions[$operation]))) {
+            $errorMessage = 'You do not have permission to perform this action.';
+        } elseif ($operation === 'verify_payment') {
             $orderId = filter_var($_POST['order_id'] ?? null, FILTER_VALIDATE_INT);
             $transactionId = is_string($_POST['transaction_id'] ?? null) ? trim($_POST['transaction_id']) : '';
             $amountInput = is_string($_POST['amount'] ?? null) ? trim($_POST['amount']) : '';
@@ -67,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (!$conn->begin_transaction()) {
                 $errorMessage = 'Could not start payment verification.';
             } else {
-                $lookup = $conn->prepare('SELECT status, payment_status, unit_price, quantity FROM sales_orders WHERE id = ? FOR UPDATE');
+                $lookup = $conn->prepare('SELECT status, payment_status, unit_price, quantity, discount_amount FROM sales_orders WHERE id = ? FOR UPDATE');
                 if (!$lookup) {
                     $conn->rollback();
                     error_log('Could not prepare payment verification lookup: ' . $conn->error);
@@ -83,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $order = $lookup->get_result()->fetch_assoc();
                         $lookup->close();
                         $amount = (float) $amountInput;
-                        $expectedAmount = $order ? (float) $order['unit_price'] * (int) $order['quantity'] : 0.0;
+                        $expectedAmount = $order ? max(0, (float) $order['unit_price'] * (int) $order['quantity'] - (float) $order['discount_amount']) : 0.0;
                         if (
                             !$order
                             || $order['status'] === 'Cancelled'
@@ -343,7 +362,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (!$conn->begin_transaction()) {
                 $errorMessage = 'Could not start the inventory adjustment.';
             } else {
-                $lookup = $conn->prepare('SELECT name, stock FROM products WHERE id = ? FOR UPDATE');
+                $lookup = $conn->prepare('SELECT name, stock, low_stock_threshold FROM products WHERE id = ? FOR UPDATE');
                 if (!$lookup) {
                     $conn->rollback();
                     error_log('Could not prepare inventory adjustment lookup: ' . $conn->error);
@@ -373,7 +392,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $saved = $update->execute();
                                 $update->close();
                                 $logged = $saved && recordInventoryAdjustment($conn, $productId, (string) $product['name'], (int) $delta, $stockBefore, $stockAfter, $reason, $adminUsername);
-                                if (!$logged || !$conn->commit()) {
+                                $lowStockCrossed = $stockBefore > (int) $product['low_stock_threshold'] && $stockAfter <= (int) $product['low_stock_threshold'];
+                                $notificationSaved = !$lowStockCrossed || createAdminNotification(
+                                    $conn,
+                                    'low_stock',
+                                    'Low stock: ' . (string) $product['name'],
+                                    'Stock is now ' . $stockAfter . ' unit(s), at or below its alert threshold.',
+                                    'operations.php?view=inventory'
+                                );
+                                if (!$logged || !$notificationSaved || !$conn->commit()) {
                                     $conn->rollback();
                                     $errorMessage = 'Stock and adjustment history could not be saved.';
                                 } else {
@@ -452,8 +479,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } elseif ($operation === 'logout') {
-            unset($_SESSION['admin_id'], $_SESSION['admin_username'], $_SESSION['admin_csrf_token']);
-            session_regenerate_id(true);
+            adminDestroySession($conn);
             header('Location: index.php');
             exit;
         } else {
@@ -538,7 +564,7 @@ if ($view === 'orders') {
     $ordersPageCount = max(1, (int) ceil($orderCount / $ordersPageSize));
     $ordersPage = min($ordersPage, $ordersPageCount);
     $offset = ($ordersPage - 1) * $ordersPageSize;
-    $sql = "SELECT s.id, s.order_reference, s.status, s.payment_status, s.product_name, s.customer_name, s.phone_number, s.location, s.quantity, s.unit_price, s.paid_amount, s.payment_transaction_id, s.receipt_filename, s.created_at FROM sales_orders s $where ORDER BY s.created_at DESC, s.id DESC LIMIT ? OFFSET ?";
+    $sql = "SELECT s.id, s.order_reference, s.status, s.payment_status, s.product_name, s.customer_name, s.phone_number, s.location, s.quantity, s.unit_price, s.discount_amount, s.paid_amount, s.payment_transaction_id, s.receipt_filename, s.created_at FROM sales_orders s $where ORDER BY s.created_at DESC, s.id DESC LIMIT ? OFFSET ?";
     $statement = $conn->prepare($sql);
     if (!$statement) {
         error_log('Could not prepare order management list: ' . $conn->error);
@@ -617,7 +643,7 @@ if ($view === 'orders') {
         FROM customer_profiles c
         LEFT JOIN (
             SELECT phone_normalized, COUNT(*) AS order_count,
-                SUM(CASE WHEN payment_status IN ('verified', 'partially_refunded', 'refunded') AND status <> 'Cancelled' THEN COALESCE(paid_amount, unit_price * quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = sales_orders.id AND h.event_type = 'refund_recorded') ELSE 0 END) AS total_spent,
+                SUM(CASE WHEN payment_status IN ('verified', 'partially_refunded', 'refunded') AND status <> 'Cancelled' THEN COALESCE(paid_amount, unit_price * quantity - discount_amount) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = sales_orders.id AND h.event_type = 'refund_recorded') ELSE 0 END) AS total_spent,
                 MAX(created_at) AS last_order
             FROM sales_orders
             WHERE phone_normalized IS NOT NULL AND phone_normalized <> ''
@@ -645,9 +671,9 @@ if ($view === 'orders') {
     $start = $dateFrom . ' 00:00:00';
     $until = (new DateTimeImmutable($dateTo, new DateTimeZone('Asia/Phnom_Penh')))->modify('+1 day')->format('Y-m-d 00:00:00');
     $statement = $conn->prepare("SELECT COUNT(*) AS orders_count, COALESCE(SUM(s.quantity), 0) AS units,
-        COALESCE(SUM(COALESCE(s.paid_amount, s.unit_price * s.quantity)), 0) AS total_paid,
+        COALESCE(SUM(COALESCE(s.paid_amount, s.unit_price * s.quantity - s.discount_amount)), 0) AS total_paid,
         COALESCE(SUM((SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded')), 0) AS refunds,
-        COALESCE(SUM(CASE WHEN s.unit_cost IS NOT NULL THEN COALESCE(s.paid_amount, s.unit_price * s.quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded') - s.unit_cost * s.quantity ELSE 0 END), 0) AS known_profit,
+        COALESCE(SUM(CASE WHEN s.unit_cost IS NOT NULL THEN COALESCE(s.paid_amount, s.unit_price * s.quantity - s.discount_amount) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded') - s.unit_cost * s.quantity ELSE 0 END), 0) AS known_profit,
         COALESCE(SUM(CASE WHEN s.unit_cost IS NULL THEN s.quantity ELSE 0 END), 0) AS unknown_cost_units
         FROM sales_orders s
         WHERE s.payment_status IN ('verified', 'partially_refunded', 'refunded') AND s.status <> 'Cancelled' AND s.created_at >= ? AND s.created_at < ?");
@@ -668,7 +694,7 @@ if ($view === 'orders') {
     $reportSummary['known_profit'] = (float) $reportSummary['known_profit'];
 
     $statement = $conn->prepare("SELECT s.product_name, SUM(s.quantity) AS units_sold,
-        SUM(COALESCE(s.paid_amount, s.unit_price * s.quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded')) AS net_revenue
+        SUM(COALESCE(s.paid_amount, s.unit_price * s.quantity - s.discount_amount) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded')) AS net_revenue
         FROM sales_orders s
         WHERE s.payment_status IN ('verified', 'partially_refunded', 'refunded') AND s.status <> 'Cancelled' AND s.created_at >= ? AND s.created_at < ?
         GROUP BY s.product_name ORDER BY units_sold DESC, net_revenue DESC LIMIT 50");
@@ -690,8 +716,8 @@ if ($view === 'orders') {
     $statement->close();
 
     $statement = $conn->prepare("SELECT DATE(s.created_at) AS sales_day, COUNT(*) AS order_count, SUM(s.quantity) AS units,
-        SUM(COALESCE(s.paid_amount, s.unit_price * s.quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded')) AS net_revenue,
-        SUM(CASE WHEN s.unit_cost IS NOT NULL THEN COALESCE(s.paid_amount, s.unit_price * s.quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded') - s.unit_cost * s.quantity ELSE 0 END) AS known_profit
+        SUM(COALESCE(s.paid_amount, s.unit_price * s.quantity - s.discount_amount) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded')) AS net_revenue,
+        SUM(CASE WHEN s.unit_cost IS NOT NULL THEN COALESCE(s.paid_amount, s.unit_price * s.quantity - s.discount_amount) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded') - s.unit_cost * s.quantity ELSE 0 END) AS known_profit
         FROM sales_orders s
         WHERE s.payment_status IN ('verified', 'partially_refunded', 'refunded') AND s.status <> 'Cancelled' AND s.created_at >= ? AND s.created_at < ?
         GROUP BY DATE(s.created_at) ORDER BY sales_day DESC");
@@ -718,8 +744,8 @@ if ($view === 'orders') {
     $previousStart = $previousDateFrom->format('Y-m-d') . ' 00:00:00';
     $previousUntil = $previousDateTo->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
     $statement = $conn->prepare("SELECT COUNT(*) AS orders_count,
-        COALESCE(SUM(COALESCE(s.paid_amount, s.unit_price * s.quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded')), 0) AS revenue,
-        COALESCE(SUM(CASE WHEN s.unit_cost IS NOT NULL THEN COALESCE(s.paid_amount, s.unit_price * s.quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded') - s.unit_cost * s.quantity ELSE 0 END), 0) AS known_profit
+        COALESCE(SUM(COALESCE(s.paid_amount, s.unit_price * s.quantity - s.discount_amount) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded')), 0) AS revenue,
+        COALESCE(SUM(CASE WHEN s.unit_cost IS NOT NULL THEN COALESCE(s.paid_amount, s.unit_price * s.quantity - s.discount_amount) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded') - s.unit_cost * s.quantity ELSE 0 END), 0) AS known_profit
         FROM sales_orders s
         WHERE s.payment_status IN ('verified', 'partially_refunded', 'refunded') AND s.status <> 'Cancelled' AND s.created_at >= ? AND s.created_at < ?");
     if (!$statement) {
@@ -758,7 +784,7 @@ if ($view === 'orders') {
 if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' && $validReportDates) {
     $start = $dateFrom . ' 00:00:00';
     $until = (new DateTimeImmutable($dateTo, new DateTimeZone('Asia/Phnom_Penh')))->modify('+1 day')->format('Y-m-d 00:00:00');
-    $statement = $conn->prepare("SELECT s.id, s.order_reference, s.status, s.payment_status, s.payment_transaction_id, s.created_at, s.product_name, s.customer_name, s.phone_number, s.quantity, s.unit_price, COALESCE(s.paid_amount, s.unit_price * s.quantity) AS paid_amount, s.unit_cost,
+    $statement = $conn->prepare("SELECT s.id, s.order_reference, s.status, s.payment_status, s.payment_transaction_id, s.created_at, s.product_name, s.customer_name, s.phone_number, s.quantity, s.unit_price, s.coupon_code, s.discount_amount, COALESCE(s.paid_amount, s.unit_price * s.quantity - s.discount_amount) AS paid_amount, s.unit_cost,
         (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded') AS refunded_total
         FROM sales_orders s
         WHERE s.payment_status IN ('verified', 'partially_refunded', 'refunded') AND s.status <> 'Cancelled' AND s.created_at >= ? AND s.created_at < ?
@@ -784,7 +810,7 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
         exit('Could not stream the report.');
     }
     fwrite($output, "\xEF\xBB\xBF");
-    fputcsv($output, ['Order reference', 'Status', 'Payment status', 'Transaction ID', 'Date', 'Product', 'Customer', 'Phone', 'Quantity', 'Unit price', 'Paid', 'Refunded', 'Net revenue', 'Unit cost', 'Known cost', 'Profit']);
+    fputcsv($output, ['Order reference', 'Status', 'Payment status', 'Transaction ID', 'Date', 'Product', 'Customer', 'Phone', 'Quantity', 'Unit price', 'Coupon code', 'Discount', 'Paid', 'Refunded', 'Net revenue', 'Unit cost', 'Known cost', 'Profit']);
     $rows = $statement->get_result();
     while ($row = $rows->fetch_assoc()) {
         $net = (float) $row['paid_amount'] - (float) $row['refunded_total'];
@@ -800,6 +826,8 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
             $row['phone_number'],
             (int) $row['quantity'],
             number_format((float) $row['unit_price'], 2, '.', ''),
+            $row['coupon_code'] ?? '',
+            number_format((float) $row['discount_amount'], 2, '.', ''),
             number_format((float) $row['paid_amount'], 2, '.', ''),
             number_format((float) $row['refunded_total'], 2, '.', ''),
             number_format($net, 2, '.', ''),
@@ -842,8 +870,6 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
             <h1>ការគ្រប់គ្រងហាង · Store operations</h1>
         </div>
         <div class="operations-nav">
-            <a href="index.php" class="ios-glass-btn"><i class="fas fa-boxes-stacked"></i> Products</a>
-            <a href="index.php?view=orders" class="ios-glass-btn"><i class="fas fa-gauge"></i> Dashboard</a>
             <a href="../home/index.php" class="ios-glass-btn"><i class="fas fa-store"></i> Storefront</a>
             <div class="theme-mode-control theme-mode-admin">
                 <label class="theme-mode-label" for="operationsThemeModeSelect">Theme</label>
@@ -853,20 +879,9 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
                     <option value="dark">Dark</option>
                 </select>
             </div>
-            <form method="post">
-                <input type="hidden" name="csrf_token" value="<?= operationsEscape($csrfToken) ?>">
-                <input type="hidden" name="operation" value="logout">
-                <button class="ios-glass-btn operations-logout" type="submit">Sign out · <?= operationsEscape($adminUsername) ?></button>
-            </form>
         </div>
     </header>
-
-    <nav class="operations-tabs" aria-label="Admin sections">
-        <a href="?view=orders" class="<?= $view === 'orders' ? 'is-active' : '' ?>"><i class="fas fa-receipt"></i> Orders &amp; payments</a>
-        <a href="?view=inventory" class="<?= $view === 'inventory' ? 'is-active' : '' ?>"><i class="fas fa-boxes-stacked"></i> Inventory</a>
-        <a href="?view=customers" class="<?= $view === 'customers' ? 'is-active' : '' ?>"><i class="fas fa-users"></i> Customers</a>
-        <a href="?view=reports" class="<?= $view === 'reports' ? 'is-active' : '' ?>"><i class="fas fa-chart-line"></i> Reports</a>
-    </nav>
+    <?php renderAdminPrimaryNavigation($currentAdmin, ['orders' => 'orders', 'inventory' => 'products', 'customers' => 'customers', 'reports' => 'reports'][$view]); ?>
 
     <?php if ($flashMessage !== ''): ?><div class="operation-notice" role="status"><?= operationsEscape($flashMessage) ?></div><?php endif; ?>
     <?php if ($errorMessage !== ''): ?><div class="operation-error" role="alert"><?= operationsEscape($errorMessage) ?></div><?php endif; ?>
@@ -885,7 +900,7 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
             </form>
             <?php if ($selectedOrder): ?>
                 <?php
-                $selectedTotal = (float) $selectedOrder['unit_price'] * (int) $selectedOrder['quantity'];
+                $selectedTotal = max(0, (float) $selectedOrder['unit_price'] * (int) $selectedOrder['quantity'] - (float) $selectedOrder['discount_amount']);
                 $selectedRefund = 0.0;
                 foreach ($orderHistory as $historyEvent) {
                     if ($historyEvent['event_type'] === 'refund_recorded') {
@@ -895,7 +910,7 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
                 ?>
                 <article class="order-review-card">
                     <div class="order-review-heading">
-                        <div><span class="section-tag">Order <?= operationsEscape($selectedOrder['order_reference'] ?: '#' . $selectedOrder['id']) ?></span><h3><?= operationsEscape($selectedOrder['customer_name']) ?> · <?= operationsEscape($selectedOrder['phone_number']) ?></h3><p><?= operationsEscape($selectedOrder['product_name']) ?> × <?= (int) $selectedOrder['quantity'] ?> · $<?= number_format($selectedTotal, 2) ?> · <?= operationsEscape($selectedOrder['created_at']) ?></p></div>
+                        <div><span class="section-tag">Order <?= operationsEscape($selectedOrder['order_reference'] ?: '#' . $selectedOrder['id']) ?></span><h3><?= operationsEscape($selectedOrder['customer_name']) ?> · <?= operationsEscape($selectedOrder['phone_number']) ?></h3><p><?= operationsEscape($selectedOrder['product_name']) ?> × <?= (int) $selectedOrder['quantity'] ?> · <?= operationsEscape($currencySymbol) ?><?= number_format($selectedTotal, 2) ?><?php if ((float) $selectedOrder['discount_amount'] > 0): ?> · Coupon <?= operationsEscape((string) $selectedOrder['coupon_code']) ?> (−<?= operationsEscape($currencySymbol) ?><?= number_format((float) $selectedOrder['discount_amount'], 2) ?>)<?php endif; ?> · <?= operationsEscape($selectedOrder['created_at']) ?></p></div>
                         <a class="operation-button operation-button-secondary" href="?view=orders"><i class="fas fa-arrow-left"></i> Close</a>
                     </div>
                     <div class="order-review-meta">
@@ -903,8 +918,8 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
                         <span><b>Payment:</b> <?= operationsEscape(ucwords(str_replace('_', ' ', $selectedOrder['payment_status']))) ?></span>
                         <span><b>Transaction:</b> <?= operationsEscape($selectedOrder['payment_transaction_id'] ?: 'Not recorded') ?></span>
                         <span><b>Delivery:</b> <?= operationsEscape($selectedOrder['location']) ?></span>
-                        <span><b>Paid:</b> $<?= number_format((float) ($selectedOrder['paid_amount'] ?? 0), 2) ?></span>
-                        <span><b>Refunded:</b> $<?= number_format($selectedRefund, 2) ?></span>
+                        <span><b>Paid:</b> <?= operationsEscape($currencySymbol) ?><?= number_format((float) ($selectedOrder['paid_amount'] ?? 0), 2) ?></span>
+                        <span><b>Refunded:</b> <?= operationsEscape($currencySymbol) ?><?= number_format($selectedRefund, 2) ?></span>
                         <?php if ($selectedOrder['receipt_filename']): ?><a href="order-receipt.php?id=<?= (int) $selectedOrder['id'] ?>" target="_blank" rel="noopener"><i class="fas fa-file-arrow-down"></i> View private receipt</a><?php else: ?><span>No receipt stored</span><?php endif; ?>
                     </div>
                     <div class="order-action-grid">
@@ -958,7 +973,7 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
                     <td><strong><?= operationsEscape($order['order_reference'] ?: '#' . $order['id']) ?></strong></td>
                     <td><?= operationsEscape($order['customer_name']) ?><small><?= operationsEscape($order['phone_number']) ?></small></td>
                     <td><?= operationsEscape($order['product_name']) ?> × <?= (int) $order['quantity'] ?></td>
-                    <td>$<?= number_format((float) $order['unit_price'] * (int) $order['quantity'], 2) ?></td>
+                    <td><?= operationsEscape($currencySymbol) ?><?= number_format(max(0, (float) $order['unit_price'] * (int) $order['quantity'] - (float) $order['discount_amount']), 2) ?></td>
                     <td><span class="status-badge status-<?= strtolower(operationsEscape($order['status'])) ?>"><?= operationsEscape($order['status']) ?></span></td>
                     <td><span class="status-badge payment-<?= operationsEscape($order['payment_status']) ?>"><?= operationsEscape(ucwords(str_replace('_', ' ', $order['payment_status']))) ?></span></td>
                     <td><?= operationsEscape($order['created_at']) ?></td>
@@ -1003,7 +1018,7 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
                     <td><strong><?= operationsEscape($customer['customer_name']) ?></strong><?php if ((int) $customer['is_blocked'] === 1): ?><small class="blocked-label">Blocked</small><?php endif; ?></td>
                     <td><?= operationsEscape($customer['phone_number']) ?></td>
                     <td><?= (int) $customer['order_count'] ?></td>
-                    <td>$<?= number_format((float) $customer['total_spent'], 2) ?></td>
+                    <td><?= operationsEscape($currencySymbol) ?><?= number_format((float) $customer['total_spent'], 2) ?></td>
                     <td><?= operationsEscape($customer['last_order'] ?? '—') ?></td>
                     <td><form method="post" class="customer-edit-form"><input type="hidden" name="csrf_token" value="<?= operationsEscape($csrfToken) ?>"><input type="hidden" name="operation" value="save_customer"><input type="hidden" name="view" value="customers"><input type="hidden" name="phone_number" value="<?= operationsEscape($customer['phone_number']) ?>"><input type="hidden" name="customer_name" value="<?= operationsEscape($customer['customer_name']) ?>"><textarea name="notes" maxlength="5000" placeholder="Customer service notes"><?= operationsEscape($customer['notes'] ?? '') ?></textarea><label class="block-checkbox"><input type="checkbox" name="is_blocked" value="1" <?= (int) $customer['is_blocked'] === 1 ? 'checked' : '' ?>> Block future checkout</label><button class="operation-button operation-button-secondary" type="submit">Save</button></form></td>
                 </tr><?php endforeach; ?>
@@ -1024,8 +1039,8 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
             <div class="analytics-grid operations-metrics">
                 <article class="analytics-card"><span>Verified orders</span><strong><?= (int) $reportSummary['orders_count'] ?></strong></article>
                 <article class="analytics-card"><span>Units sold</span><strong><?= (int) $reportSummary['units'] ?></strong></article>
-                <article class="analytics-card"><span>Net revenue</span><strong>$<?= number_format((float) $reportSummary['revenue'], 2) ?></strong><small>After refunds of $<?= number_format((float) $reportSummary['refunds'], 2) ?></small></article>
-                <article class="analytics-card"><span><?= (float) $reportSummary['known_profit'] < 0 ? 'Estimated loss (known costs)' : 'Estimated profit (known costs)' ?></span><strong class="<?= (float) $reportSummary['known_profit'] < 0 ? 'report-loss-value' : '' ?>">$<?= number_format(abs((float) $reportSummary['known_profit']), 2) ?><?= (float) $reportSummary['known_profit'] < 0 ? ' loss' : '' ?></strong><small><?= (int) $reportSummary['unknown_cost_units'] ?> units with no saved cost excluded</small></article>
+                <article class="analytics-card"><span>Net revenue</span><strong><?= operationsEscape($currencySymbol) ?><?= number_format((float) $reportSummary['revenue'], 2) ?></strong><small>After refunds of <?= operationsEscape($currencySymbol) ?><?= number_format((float) $reportSummary['refunds'], 2) ?></small></article>
+                <article class="analytics-card"><span><?= (float) $reportSummary['known_profit'] < 0 ? 'Estimated loss (known costs)' : 'Estimated profit (known costs)' ?></span><strong class="<?= (float) $reportSummary['known_profit'] < 0 ? 'report-loss-value' : '' ?>"><?= operationsEscape($currencySymbol) ?><?= number_format(abs((float) $reportSummary['known_profit']), 2) ?><?= (float) $reportSummary['known_profit'] < 0 ? ' loss' : '' ?></strong><small><?= (int) $reportSummary['unknown_cost_units'] ?> units with no saved cost excluded</small></article>
             </div>
             <?php
             $reportToday = new DateTimeImmutable('today', new DateTimeZone('Asia/Phnom_Penh'));
@@ -1151,8 +1166,8 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
                             <polyline class="chart-revenue-line" points="<?= operationsEscape(implode(' ', $revenuePoints)) ?>"></polyline>
                             <polyline class="chart-profit-line" points="<?= operationsEscape(implode(' ', $profitPoints)) ?>"></polyline>
                             <?php foreach ($chartReports as $index => $point): ?>
-                                <circle class="chart-revenue-point" cx="<?= number_format($chartX($index), 2, '.', '') ?>" cy="<?= number_format($chartY($point['revenue']), 2, '.', '') ?>" r="3"><title><?= operationsEscape($point['date']) ?> · Revenue $<?= number_format($point['revenue'], 2) ?></title></circle>
-                                <circle class="chart-profit-point" cx="<?= number_format($chartX($index), 2, '.', '') ?>" cy="<?= number_format($chartY($point['profit']), 2, '.', '') ?>" r="3"><title><?= operationsEscape($point['date']) ?> · Profit / loss $<?= number_format($point['profit'], 2) ?></title></circle>
+                                <circle class="chart-revenue-point" cx="<?= number_format($chartX($index), 2, '.', '') ?>" cy="<?= number_format($chartY($point['revenue']), 2, '.', '') ?>" r="3"><title><?= operationsEscape($point['date']) ?> · Revenue <?= operationsEscape($currencySymbol) ?><?= number_format($point['revenue'], 2) ?></title></circle>
+                                <circle class="chart-profit-point" cx="<?= number_format($chartX($index), 2, '.', '') ?>" cy="<?= number_format($chartY($point['profit']), 2, '.', '') ?>" r="3"><title><?= operationsEscape($point['date']) ?> · Profit / loss <?= operationsEscape($currencySymbol) ?><?= number_format($point['profit'], 2) ?></title></circle>
                             <?php endforeach; ?>
                             <?php
                             $labelCount = min(6, count($chartReports));
@@ -1170,12 +1185,12 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
             </section>
             <h3 class="history-title">Daily sales breakdown</h3>
             <div class="operations-table-wrap"><table class="operations-table"><thead><tr><th>Date</th><th>Orders</th><th>Units</th><th>Net revenue</th><th>Estimated profit (known costs)</th></tr></thead><tbody>
-                <?php foreach ($dailyReports as $daily): ?><tr><td><?= operationsEscape($daily['sales_day']) ?></td><td><?= (int) $daily['order_count'] ?></td><td><?= (int) $daily['units'] ?></td><td>$<?= number_format((float) $daily['net_revenue'], 2) ?></td><td>$<?= number_format((float) $daily['known_profit'], 2) ?></td></tr><?php endforeach; ?>
+                <?php foreach ($dailyReports as $daily): ?><tr><td><?= operationsEscape($daily['sales_day']) ?></td><td><?= (int) $daily['order_count'] ?></td><td><?= (int) $daily['units'] ?></td><td><?= operationsEscape($currencySymbol) ?><?= number_format((float) $daily['net_revenue'], 2) ?></td><td><?= operationsEscape($currencySymbol) ?><?= number_format((float) $daily['known_profit'], 2) ?></td></tr><?php endforeach; ?>
                 <?php if (!$dailyReports): ?><tr><td colspan="5">No verified sales in this date range.</td></tr><?php endif; ?>
             </tbody></table></div>
             <h3 class="history-title">Best-selling products in period</h3>
             <div class="operations-table-wrap"><table class="operations-table"><thead><tr><th>Product</th><th>Units sold</th><th>Net revenue</th></tr></thead><tbody>
-                <?php foreach ($topProducts as $product): ?><tr><td><?= operationsEscape($product['product_name']) ?></td><td><?= (int) $product['units_sold'] ?></td><td>$<?= number_format((float) $product['net_revenue'], 2) ?></td></tr><?php endforeach; ?>
+                <?php foreach ($topProducts as $product): ?><tr><td><?= operationsEscape($product['product_name']) ?></td><td><?= (int) $product['units_sold'] ?></td><td><?= operationsEscape($currencySymbol) ?><?= number_format((float) $product['net_revenue'], 2) ?></td></tr><?php endforeach; ?>
                 <?php if (!$topProducts): ?><tr><td colspan="3">No verified sales in this date range.</td></tr><?php endif; ?>
             </tbody></table></div>
             <p class="operations-help">To view daily, weekly, or monthly results, select the corresponding date range. CSV export includes order, customer, payment, refund, cost, and profit fields.</p>

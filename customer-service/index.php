@@ -219,17 +219,17 @@
             <form class="support-form" method="POST" action="submit-form.php">
                 <div class="form-group">
                     <label><i class="fas fa-user" style="color: var(--cyber-cyan); margin-right: 6px;"></i> ឈ្មោះរបស់អ្នក (Name)</label>
-                    <input type="text" name="name" class="form-control-cyber" placeholder="ឧទាហរណ៍: Sokha" required>
+                    <input type="text" name="name" class="form-control-cyber" maxlength="100" placeholder="ឧទាហរណ៍: Sokha" required>
                 </div>
 
                 <div class="form-group">
                     <label><i class="fas fa-envelope" style="color: var(--cyber-purple); margin-right: 6px;"></i> អ៊ីម៉ែល ឬ Telegram ID</label>
-                    <input type="email" name="email" class="form-control-cyber" placeholder="ឧទាហរណ៍: sokha@gmail.com" required>
+                    <input type="email" name="email" class="form-control-cyber" maxlength="100" placeholder="ឧទាហរណ៍: sokha@gmail.com" required>
                 </div>
 
                 <div class="form-group">
                     <label><i class="fas fa-comment-dots" style="color: var(--cyber-pink); margin-right: 6px;"></i> មតិយោបល់ ឬសំណួររបស់អ្នក (Message)</label>
-                    <textarea name="message" class="form-control-cyber" placeholder="សូមសរសេរសារ ឬបញ្ហារបស់លោកអ្នកនៅទីនេះ..." required></textarea>
+                    <textarea name="message" class="form-control-cyber" maxlength="10000" placeholder="សូមសរសេរសារ ឬបញ្ហារបស់លោកអ្នកនៅទីនេះ..." required></textarea>
                 </div>
 
                 <button type="submit" class="cyber-buy-action" style="width: 100%; padding: 13px; margin-top: 8px;">

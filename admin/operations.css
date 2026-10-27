@@ -108,6 +108,45 @@
     gap: 8px;
 }
 
+.security-create-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    align-items: end;
+    gap: 14px;
+}
+
+.security-create-form > label {
+    display: grid;
+    gap: 6px;
+    color: #514a43;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.security-create-form fieldset {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    min-width: 0;
+    border: 1px solid #ded5cb;
+    color: #514a43;
+}
+
+.security-permission-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 7px 12px;
+}
+
+.security-permission-list label,
+.security-create-form fieldset label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #514a43;
+    font-size: 12px;
+}
+
 .operations-filter {
     display: flex;
     align-items: end;

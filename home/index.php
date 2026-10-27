@@ -1,4 +1,20 @@
 <?php
+require_once __DIR__ . '/../api/db.php';
+$storeSettings = [];
+$settingsResult = $conn->query('SELECT setting_name, setting_value FROM system_settings');
+if ($settingsResult) {
+    while ($setting = $settingsResult->fetch_assoc()) {
+        $storeSettings[$setting['setting_name']] = $setting['setting_value'];
+    }
+}
+$storeName = $storeSettings['store_name'] ?? '4K STORE';
+$storeCurrency = $storeSettings['currency_symbol'] ?? '$';
+$nav_brand_logo = $storeSettings['store_logo_url'] ?? '';
+$nav_store_name = $storeName;
+$nav_contact_url = $storeSettings['store_contact_url'] ?? 'https://t.me/netstillloser';
+$heroTitle = $storeSettings['home_hero_title'] ?? 'គុណភាពខ្ពស់ 100%';
+$heroDescription = $storeSettings['home_hero_description'] ?? 'ទិញ-លក់ផលិតផល ប្រកបដោយសុវត្ថិភាព មានការធានាជូន និងគាំទ្រការទូទាត់គ្រប់ធនាគារក្នុងប្រទេសកម្ពុជា។';
+$heroBannerUrl = $storeSettings['home_banner_url'] ?? '';
 date_default_timezone_set('Asia/Phnom_Penh');
 $hour = (int)date('H');
 if ($hour < 12) {
@@ -41,7 +57,6 @@ if ($is_checkout) {
 
     $product = null;
     if ($item !== '' && ctype_digit((string) $item)) {
-        include_once '../api/db.php';
         if (isset($conn) && !$conn->connect_error && !ensureProductStockColumn($conn)) {
             http_response_code(500);
             exit('Product inventory is temporarily unavailable.');
@@ -621,7 +636,7 @@ if ($page === 'about' && !$is_checkout) {
                         <span class="about-eyebrow"><i class="fas fa-headset"></i> WE'RE HERE TO HELP</span>
                         <h3 style="margin-top:16px;">មានសំណួរអំពីផលិតផល ឬការបញ្ជាទិញ?</h3>
                         <p>ទាក់ទងក្រុមការងាររបស់យើងតាម Telegram សម្រាប់សួរព័ត៌មានអំពីផលិតផល ការទូទាត់ ឬជំនួយក្រោយការបញ្ជាទិញ។ សូមពិនិត្យព័ត៌មាន និងលក្ខខណ្ឌផលិតផលជាមុន ដើម្បីទទួលបានជំនួយត្រឹមត្រូវ។</p>
-                        <a href="https://t.me/netstillloser" target="_blank" rel="noopener noreferrer" class="cyber-glow-btn"><i class="fab fa-telegram-plane"></i> ទាក់ទង NET STORE តាម Telegram</a>
+                        <a href="<?php echo htmlspecialchars($nav_contact_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="cyber-glow-btn"><i class="fab fa-telegram-plane"></i> ទាក់ទង <?php echo htmlspecialchars($storeName, ENT_QUOTES, 'UTF-8'); ?></a>
                     </section>
                 </main>
                 <footer class="about-page-footer">&copy; <?php echo date('Y'); ?> 4K STORE • សូមអរគុណដែលបានជ្រើសរើសយើង</footer>
@@ -636,7 +651,7 @@ if ($page === 'about' && !$is_checkout) {
                     <div class="card-hologram-frame" style="width: 100px; height: 100px; margin: 0 auto 14px; border-radius: 20px;"><img src="<?php echo htmlspecialchars($product['img']); ?>" alt="Product"></div>
                     <h2 style="font-size: 24px; font-weight: 800; color: #fff; font-family: 'Space Grotesk', sans-serif;"><?php echo htmlspecialchars($product['name']); ?></h2>
                     <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;"><?php echo htmlspecialchars($product['desc']); ?></p>
-                    <div class="cyber-price-pill" style="margin: 14px auto; font-size: 22px;">$<?php echo htmlspecialchars($product['price']); ?> <span>/ មួយ</span></div>
+                        <div class="cyber-price-pill" style="margin: 14px auto; font-size: 22px;"><?php echo htmlspecialchars($storeCurrency, ENT_QUOTES, 'UTF-8'); ?><?php echo htmlspecialchars($product['price'], ENT_QUOTES, 'UTF-8'); ?> <span>/ មួយ</span></div>
                     <div class="bank-selector-pills">
                         <span class="bank-sel-btn active"><i class="fas fa-qrcode"></i>KHQR</span>
                     </div>
@@ -648,7 +663,7 @@ if ($page === 'about' && !$is_checkout) {
                         1. ស្កេន QR Code ឬថតរូបអេក្រង់ (Screenshot)<br>
                         2. ចុចប៊ូតុងខាងក្រោមដើម្បីផ្ញើវិក្កយបត្រទៅកាន់ Telegram Admin ភ្លាមៗ
                     </div>
-                    <a href="<?php echo htmlspecialchars($telegram_url); ?>" target="_blank" rel="noopener noreferrer" class="cyber-buy-action" style="text-decoration: none; padding: 14px; font-size: 15px;"><i class="fab fa-telegram-plane" style="font-size: 18px;"></i> ផ្ញើវិក្កយបត្រទៅ Telegram (@netisnet)</a>
+                    <a href="<?php echo htmlspecialchars($nav_contact_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="cyber-buy-action" style="text-decoration: none; padding: 14px; font-size: 15px;"><i class="fab fa-telegram-plane" style="font-size: 18px;"></i> ផ្ញើវិក្កយបត្រទៅ Telegram</a>
                     <div style="margin-top: 16px; font-size: 11.5px; color: var(--text-dim);"><i class="fas fa-clock"></i> Admin នឹងបញ្ជាក់ការបញ្ជាទិញ និងព័ត៌មានដឹកជញ្ជូនតាម Telegram</div>
                 </div>
             </div>
@@ -668,7 +683,7 @@ if ($page === 'about' && !$is_checkout) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>www.netstoreonline.com</title>
+    <title><?php echo htmlspecialchars($storeName, ENT_QUOTES, 'UTF-8'); ?></title>
     <!-- Icons & Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" href="./logo/logome.png" type="image/x-icon">
@@ -743,12 +758,10 @@ if ($page === 'about' && !$is_checkout) {
             <div class="hero-centerpiece">
                 <div class="hero-text-side">
                     <div class="hero-tag-pill">
-                        <i class="fas fa-sparkles"></i> NET STORE • Curated for you
+                        <i class="fas fa-sparkles"></i> <?php echo htmlspecialchars($storeName, ENT_QUOTES, 'UTF-8'); ?> • Curated for you
                     </div>
-                    <h2>គុណភាពខ្ពស់ 100%</h2>
-                    <p>
-                        ទិញ-លក់ផលិតផល​ ប្រកបដោយសុវត្ថិភាព មានការធានាជូន និងគាំទ្រការទូទាត់គ្រប់ធនាគារក្នុងប្រទេសកម្ពុជា។
-                    </p>
+                    <h2><?php echo htmlspecialchars($heroTitle, ENT_QUOTES, 'UTF-8'); ?></h2>
+                    <p><?php echo htmlspecialchars($heroDescription, ENT_QUOTES, 'UTF-8'); ?></p>
                     <a class="fashion-shop-cta" href="#productsCatalogMatrix">
                         <span>Shop the collection</span>
                         <i class="fas fa-arrow-right" aria-hidden="true"></i>
@@ -770,7 +783,8 @@ if ($page === 'about' && !$is_checkout) {
                 </div>
 
                 <div class="hero-visual-side" aria-hidden="true">
-                    <span class="hero-brand-caption">4K STORE · CURATED GOODS</span>
+                    <?php if ($heroBannerUrl !== ''): ?><img class="hero-managed-banner" src="<?php echo htmlspecialchars($heroBannerUrl, ENT_QUOTES, 'UTF-8'); ?>" alt=""><?php endif; ?>
+                    <span class="hero-brand-caption"><?php echo htmlspecialchars($storeName, ENT_QUOTES, 'UTF-8'); ?> · CURATED GOODS</span>
                     <span class="hero-brand-mark">4K</span>
                 </div>
             </div>
@@ -786,7 +800,6 @@ if ($page === 'about' && !$is_checkout) {
 
         <div class="cyber-cards-matrix" id="productsCatalogMatrix">
             <?php
-            include '../api/db.php';
             if (isset($conn) && !$conn->connect_error && !ensureProductStockColumn($conn)) {
                 http_response_code(500);
                 exit('Product inventory is temporarily unavailable.');
@@ -824,7 +837,7 @@ if ($page === 'about' && !$is_checkout) {
                                 <span><i class="fas fa-shield-alt" style="color:var(--cyber-emerald);"></i> ធានាគុណភាព 100%</span>
                             </div>
                             <div class="cyber-price-pill">
-                                $<?php echo $p_price; ?> <span>/ មួយ</span>
+                                <?php echo htmlspecialchars($storeCurrency, ENT_QUOTES, 'UTF-8'); ?><?php echo $p_price; ?> <span>/ មួយ</span>
                             </div>
                             <div class="card-action-wrap">
                                 <form method="post" action="index.php">
@@ -927,7 +940,19 @@ if ($page === 'about' && !$is_checkout) {
                 <div class="card-hologram-frame checkout-product-image"><img src="<?php echo htmlspecialchars($product['img']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>"></div>
                 <h2 id="buyCheckoutTitle"><?php echo htmlspecialchars($product['name']); ?></h2>
                 <p class="checkout-product-description"><?php echo htmlspecialchars($product['desc']); ?></p>
-                <div class="cyber-price-pill checkout-product-price">$<?php echo htmlspecialchars($product['price']); ?> <span>/ មួយ</span></div>
+                <div class="cyber-price-pill checkout-product-price"><?php echo htmlspecialchars($storeCurrency, ENT_QUOTES, 'UTF-8'); ?><?php echo htmlspecialchars($product['price'], ENT_QUOTES, 'UTF-8'); ?> <span>/ មួយ</span></div>
+                <?php if ($item !== '' && ctype_digit((string) $item) && is_numeric($product['price'])): ?>
+                    <div class="checkout-coupon-panel">
+                        <label for="checkoutCouponCode">Discount code</label>
+                        <div class="checkout-coupon-row">
+                            <input id="checkoutCouponCode" name="coupon_code" type="text" maxlength="40" autocomplete="off" placeholder="Enter coupon code">
+                            <button id="applyCheckoutCoupon" type="button" class="cyber-buy-action">Apply</button>
+                        </div>
+                        <p id="checkoutCouponStatus" class="checkout-coupon-status" role="status" aria-live="polite"></p>
+                        <p id="checkoutDiscountLine" hidden>Discount: <strong></strong></p>
+                        <p id="checkoutTotalLine">Total: <strong><?php echo htmlspecialchars($storeCurrency, ENT_QUOTES, 'UTF-8'); ?><?php echo number_format((float) $product['price'], 2); ?></strong></p>
+                    </div>
+                <?php endif; ?>
                 <div class="checkout-payment-instructions">
                     <div><i class="fas fa-info-circle"></i> របៀបទូទាត់ប្រាក់៖</div>
                     1. ស្កេន QR Code ឬថតរូបអេក្រង់ (Screenshot)<br>
@@ -1001,6 +1026,9 @@ if ($page === 'about' && !$is_checkout) {
                 const receiptInput = document.getElementById('checkoutReceipt');
                 const receiptFilename = document.getElementById('checkoutReceiptFilename');
                 const orderStatus = document.getElementById('checkoutOrderStatus');
+                const couponCodeInput = document.getElementById('checkoutCouponCode');
+                const applyCouponButton = document.getElementById('applyCheckoutCoupon');
+                const storeCurrency = <?= json_encode($storeCurrency, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
                 const submitButton = orderForm.querySelector('button[type="submit"]');
                 const submitButtonContent = submitButton.innerHTML;
 
@@ -1010,6 +1038,53 @@ if ($page === 'about' && !$is_checkout) {
                         ? `${receipt.name} (${(receipt.size / (1024 * 1024)).toFixed(2)} MB)`
                         : 'មិនទាន់បានជ្រើសរើសឯកសារ';
                 });
+
+                if (couponCodeInput && applyCouponButton) {
+                    const couponStatus = document.getElementById('checkoutCouponStatus');
+                    const discountLine = document.getElementById('checkoutDiscountLine');
+                    const totalLine = document.getElementById('checkoutTotalLine');
+                    const checkoutSubtotal = Number(<?= json_encode((float) $product['price']) ?>);
+                    const resetCouponPreview = () => {
+                        discountLine.hidden = true;
+                        totalLine.querySelector('strong').textContent = `${storeCurrency}${checkoutSubtotal.toFixed(2)}`;
+                    };
+                    couponCodeInput.addEventListener('input', () => {
+                        resetCouponPreview();
+                        couponStatus.textContent = '';
+                        couponStatus.dataset.state = '';
+                    });
+                    applyCouponButton.addEventListener('click', async () => {
+                        const couponCode = couponCodeInput.value.trim();
+                        if (!couponCode) {
+                            couponStatus.dataset.state = 'error';
+                            couponStatus.textContent = 'Enter a discount code.';
+                            return;
+                        }
+                        applyCouponButton.disabled = true;
+                        couponStatus.dataset.state = '';
+                        couponStatus.textContent = 'Checking code...';
+                        try {
+                            const response = await fetch('../api/validate-coupon.php', {
+                                method: 'POST',
+                                body: new URLSearchParams({ product_id: orderForm.elements.namedItem('item').value, coupon_code: couponCode })
+                            });
+                            const data = await response.json();
+                            if (!response.ok || data.success !== true) throw new Error(data.message || 'Coupon could not be applied.');
+                            couponCodeInput.value = data.coupon_code;
+                            discountLine.hidden = false;
+                            discountLine.querySelector('strong').textContent = `-${storeCurrency}${Number(data.discount).toFixed(2)}`;
+                            totalLine.querySelector('strong').textContent = `${storeCurrency}${Number(data.total).toFixed(2)}`;
+                            couponStatus.dataset.state = 'success';
+                            couponStatus.textContent = 'Discount applied. The final amount is checked again when you submit.';
+                        } catch (error) {
+                            resetCouponPreview();
+                            couponStatus.dataset.state = 'error';
+                            couponStatus.textContent = error.message || 'Coupon could not be applied.';
+                        } finally {
+                            applyCouponButton.disabled = false;
+                        }
+                    });
+                }
 
                 orderForm.addEventListener('submit', (e) => {
                     e.preventDefault();

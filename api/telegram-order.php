@@ -163,6 +163,9 @@ if (!ensureSalesAnalyticsSchema($conn)) {
 if (!ensureAdminOperationsSchema($conn)) {
     respond(500, ['success' => false, 'message' => 'មិនអាចរៀបចំប្រព័ន្ធគ្រប់គ្រងការបញ្ជាទិញបានទេ។ សូមទាក់ទង Admin។']);
 }
+if (!ensureStoreManagementSchema($conn)) {
+    respond(500, ['success' => false, 'message' => 'មិនអាចរៀបចំការជូនដំណឹង និងប្រូម៉ូសិនបានទេ។ សូមទាក់ទង Admin។']);
+}
 
 $customerStatement = $conn->prepare('SELECT is_blocked FROM customer_profiles WHERE phone_normalized = ? LIMIT 1');
 if (!$customerStatement) {
@@ -181,7 +184,7 @@ if ($customerProfile && (int) $customerProfile['is_blocked'] === 1) {
     respond(403, ['success' => false, 'message' => 'លេខទូរស័ព្ទនេះមិនអាចធ្វើការបញ្ជាទិញបានទេ។ សូមទាក់ទងហាង។']);
 }
 
-$statement = $conn->prepare('SELECT name, price, cost_price, stock FROM products WHERE id = ?');
+$statement = $conn->prepare('SELECT name, price, cost_price, stock, low_stock_threshold FROM products WHERE id = ?');
 if (!$statement) {
     error_log('Could not prepare Telegram order product lookup.');
     respond(500, ['success' => false, 'message' => 'មានបញ្ហាក្នុងការរៀបចំព័ត៌មានបញ្ជាទិញ។']);
@@ -202,6 +205,21 @@ if (!$productRow) {
 if ((int) $productRow['stock'] < 1) {
     respond(409, ['success' => false, 'message' => 'ផលិតផលនេះអស់ស្តុកហើយ។ សូមជ្រើសរើសផលិតផលផ្សេង។']);
 }
+$couponCodeInput = $_POST['coupon_code'] ?? '';
+$couponCode = is_string($couponCodeInput) ? strtoupper(trim($couponCodeInput)) : '';
+if ($couponCode !== '' && preg_match('/^[A-Z0-9_-]{3,40}$/D', $couponCode) !== 1) {
+    respond(422, ['success' => false, 'message' => 'Coupon code is invalid.']);
+}
+$coupon = $couponCode === '' ? null : findAvailableCoupon($conn, $couponCode);
+$subtotal = round((float) $productRow['price'], 2);
+$discountAmount = 0.0;
+if ($couponCode !== '') {
+    $discountAmount = $coupon ? calculateCouponDiscount($subtotal, $coupon) : null;
+    if (!$coupon || $discountAmount === null || $discountAmount <= 0) {
+        respond(422, ['success' => false, 'message' => 'Coupon is invalid, expired, fully used, or does not meet its minimum subtotal.']);
+    }
+}
+$couponId = $coupon ? (int) $coupon['id'] : null;
 
 $receipt = $_FILES['receipt'] ?? null;
 if (!is_array($receipt) || !isset($receipt['error']) || !is_int($receipt['error']) || $receipt['error'] === UPLOAD_ERR_NO_FILE) {
@@ -280,7 +298,7 @@ if (!$conn->begin_transaction()) {
     error_log('Could not start product stock reservation transaction.');
     respond(500, ['success' => false, 'message' => 'មានបញ្ហាក្នុងការកក់ស្តុកផលិតផល។']);
 }
-$stockLookup = $conn->prepare('SELECT name, stock FROM products WHERE id = ? FOR UPDATE');
+$stockLookup = $conn->prepare('SELECT name, stock, low_stock_threshold FROM products WHERE id = ? FOR UPDATE');
 if (!$stockLookup) {
     $conn->rollback();
     unlink($receiptPath);
@@ -333,7 +351,10 @@ if (!$reservationLogged || !$conn->commit()) {
 
 $productName = (string) $productRow['name'];
 $productPrice = (string) $productRow['price'];
-$message = "ការបញ្ជាទិញថ្មី\nOrder: {$orderReference}\nផលិតផល: {$productName}\nតម្លៃ: \${$productPrice}\nឈ្មោះ: {$customerName}\nលេខទូរស័ព្ទ: {$phoneNumber}\nទីតាំង: {$location}";
+$currencySymbol = storeCurrencySymbol($conn);
+$orderTotal = max(0, round($subtotal - $discountAmount, 2));
+$discountDetails = $coupon ? "\nCoupon: {$couponCode}\nDiscount: -{$currencySymbol}" . number_format($discountAmount, 2) : '';
+$message = "ការបញ្ជាទិញថ្មី\nOrder: {$orderReference}\nផលិតផល: {$productName}\nតម្លៃ: {$currencySymbol}{$productPrice}{$discountDetails}\nសរុប: {$currencySymbol}" . number_format($orderTotal, 2) . "\nឈ្មោះ: {$customerName}\nលេខទូរស័ព្ទ: {$phoneNumber}\nទីតាំង: {$location}";
 $originalName = basename((string) ($receipt['name'] ?? 'payment-receipt'));
 $safeBaseName = preg_replace('/[^A-Za-z0-9._-]/', '_', pathinfo($originalName, PATHINFO_FILENAME));
 $safeBaseName = is_string($safeBaseName) && $safeBaseName !== '' ? substr($safeBaseName, 0, 100) : 'payment-receipt';
@@ -378,7 +399,7 @@ if ($httpStatus < 200 || $httpStatus >= 300 || !is_array($telegramResponse) || (
     respond(502, ['success' => false, 'message' => 'Telegram មិនអាចទទួលព័ត៌មានបានទេ។ សូមព្យាយាមម្តងទៀត។']);
 }
 
-$saleStatement = $conn->prepare("INSERT INTO sales_orders (product_id, product_name, customer_name, phone_number, phone_normalized, location, quantity, unit_price, unit_cost, order_reference, payment_method, status, payment_status, receipt_filename, receipt_mime, inventory_reserved) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, 'online', 'Pending', 'pending', ?, ?, 1)");
+$saleStatement = $conn->prepare("INSERT INTO sales_orders (product_id, product_name, customer_name, phone_number, phone_normalized, location, quantity, unit_price, unit_cost, order_reference, payment_method, status, payment_status, receipt_filename, receipt_mime, inventory_reserved, coupon_id, coupon_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, 'online', 'Pending', 'pending', ?, ?, 1, ?, ?, ?)");
 if (!$saleStatement) {
     unlink($receiptPath);
     restoreReservedProductStock($conn, $productId, $orderReference);
@@ -393,7 +414,58 @@ if (!$conn->begin_transaction()) {
     error_log('Could not start accepted Telegram order transaction.');
     respond(500, ['success' => false, 'message' => 'ការបញ្ជាទិញត្រូវបានផ្ញើ ប៉ុន្តែមិនអាចរក្សាទុកប្រវត្តិបានទេ។ សូមទាក់ទង Admin។']);
 }
-$saleStatement->bind_param('isssssddsss', $productId, $productName, $customerName, $phoneNumber, $phoneNormalized, $location, $productPrice, $unitCost, $orderReference, $receiptFilename, $receiptMime);
+if ($coupon) {
+    $couponLock = $conn->prepare('SELECT id, coupon_code, discount_type, discount_value, minimum_subtotal, max_uses, uses_count, starts_at, expires_at, is_active FROM discount_coupons WHERE id = ? FOR UPDATE');
+    if (!$couponLock) {
+        $conn->rollback();
+        $saleStatement->close();
+        unlink($receiptPath);
+        restoreReservedProductStock($conn, $productId, $orderReference);
+        respond(503, ['success' => false, 'message' => 'Could not confirm the coupon. Please retry.']);
+    }
+    $couponLock->bind_param('i', $couponId);
+    $couponLock->execute();
+    $lockedCoupon = $couponLock->get_result()->fetch_assoc();
+    $couponLock->close();
+    $currentTime = new DateTimeImmutable('now', new DateTimeZone('Asia/Phnom_Penh'));
+    $couponStillAvailable = $lockedCoupon
+        && (int) $lockedCoupon['is_active'] === 1
+        && ($lockedCoupon['starts_at'] === null || new DateTimeImmutable((string) $lockedCoupon['starts_at'], new DateTimeZone('Asia/Phnom_Penh')) <= $currentTime)
+        && ($lockedCoupon['expires_at'] === null || new DateTimeImmutable((string) $lockedCoupon['expires_at'], new DateTimeZone('Asia/Phnom_Penh')) > $currentTime)
+        && ($lockedCoupon['max_uses'] === null || (int) $lockedCoupon['uses_count'] < (int) $lockedCoupon['max_uses']);
+    $lockedDiscount = $couponStillAvailable ? calculateCouponDiscount($subtotal, $lockedCoupon) : null;
+    if (
+        !$couponStillAvailable
+        || strtoupper((string) $lockedCoupon['coupon_code']) !== $couponCode
+        || $lockedDiscount === null
+        || (int) round($lockedDiscount * 100) !== (int) round($discountAmount * 100)
+    ) {
+        $conn->rollback();
+        $saleStatement->close();
+        unlink($receiptPath);
+        restoreReservedProductStock($conn, $productId, $orderReference);
+        respond(409, ['success' => false, 'message' => 'The coupon changed or reached its usage limit. Please check the total and try again.']);
+    }
+    $useCoupon = $conn->prepare('UPDATE discount_coupons SET uses_count = uses_count + 1 WHERE id = ? AND (max_uses IS NULL OR uses_count < max_uses)');
+    if (!$useCoupon) {
+        $conn->rollback();
+        $saleStatement->close();
+        unlink($receiptPath);
+        restoreReservedProductStock($conn, $productId, $orderReference);
+        respond(503, ['success' => false, 'message' => 'Could not reserve the coupon. Please retry.']);
+    }
+    $useCoupon->bind_param('i', $couponId);
+    $couponUseSaved = $useCoupon->execute() && $useCoupon->affected_rows === 1;
+    $useCoupon->close();
+    if (!$couponUseSaved) {
+        $conn->rollback();
+        $saleStatement->close();
+        unlink($receiptPath);
+        restoreReservedProductStock($conn, $productId, $orderReference);
+        respond(409, ['success' => false, 'message' => 'Coupon usage limit was reached. Please check the total and try again.']);
+    }
+}
+$saleStatement->bind_param('isssssddsssisd', $productId, $productName, $customerName, $phoneNumber, $phoneNormalized, $location, $productPrice, $unitCost, $orderReference, $receiptFilename, $receiptMime, $couponId, $couponCode, $discountAmount);
 if (!$saleStatement->execute()) {
     error_log('Could not save accepted Telegram order: ' . $saleStatement->error);
     $saleStatement->close();
@@ -437,6 +509,27 @@ if (!$conn->commit()) {
     $conn->rollback();
     error_log('Could not confirm accepted Telegram order transaction; preserve reserved stock and receipt for reconciliation.');
     respond(500, ['success' => false, 'message' => 'ការបញ្ជាទិញត្រូវបានផ្ញើ ប៉ុន្តែមិនអាចបញ្ជាក់ការរក្សាទុកបានទេ។ សូមទាក់ទង Admin មុនពេលព្យាយាមម្ដងទៀត។']);
+}
+
+if (!createAdminNotification(
+    $conn,
+    'new_order',
+    'New order ' . $orderReference,
+    $productName . ' · ' . $customerName . ' · ' . $currencySymbol . number_format($orderTotal, 2),
+    'operations.php?view=orders&details=' . $orderId
+)) {
+    error_log('Order was saved but the admin notification could not be recorded.');
+}
+if ($stockBefore > (int) $lockedProduct['low_stock_threshold'] && $stockAfter <= (int) $lockedProduct['low_stock_threshold']) {
+    if (!createAdminNotification(
+        $conn,
+        'low_stock',
+        'Low stock: ' . $productName,
+        'Only ' . $stockAfter . ' unit(s) remain after the order was saved.',
+        'operations.php?view=inventory'
+    )) {
+        error_log('Order was saved but the low-stock notification could not be recorded.');
+    }
 }
 
 unset($_SESSION['order_csrf_token']);

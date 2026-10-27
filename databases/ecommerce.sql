@@ -20,6 +20,11 @@ USE `ecommerce`;
 
 DROP TABLE IF EXISTS `account_sessions`;
 DROP TABLE IF EXISTS `account`;
+DROP TABLE IF EXISTS `admin_notifications`;
+DROP TABLE IF EXISTS `discount_coupons`;
+DROP TABLE IF EXISTS `admin_sessions`;
+DROP TABLE IF EXISTS `admin_login_attempts`;
+DROP TABLE IF EXISTS `admin_audit_log`;
 DROP TABLE IF EXISTS `admins`;
 DROP TABLE IF EXISTS `audit_logs`;
 DROP TABLE IF EXISTS `system_settings`;
@@ -78,12 +83,56 @@ CREATE TABLE `admins` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
+  `role` varchar(20) NOT NULL DEFAULT 'admin',
+  `permissions` text,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `admins` (`id`, `username`, `password`) VALUES
 (154, 'netsmos100', '$2y$10$irn4aO/mzBkAuGRK.fnYwuVT4yI8rcBXUuX.7Qxs.eKhVYBsx95bO');
+
+CREATE TABLE `admin_login_attempts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `ip_address` varchar(45) NOT NULL,
+  `identity_hash` char(64) NOT NULL,
+  `attempted_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_admin_login_ip_time` (`ip_address`,`attempted_at`),
+  KEY `idx_admin_login_identity_time` (`identity_hash`,`attempted_at`),
+  KEY `idx_admin_login_attempted` (`attempted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `admin_sessions` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `admin_id` int(11) NOT NULL,
+  `session_hash` char(64) NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) NOT NULL DEFAULT '',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `last_seen_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `expires_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_admin_session_hash` (`session_hash`),
+  KEY `idx_admin_session_admin` (`admin_id`),
+  KEY `idx_admin_session_expiry` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `admin_audit_log` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `actor_id` int(11) DEFAULT NULL,
+  `actor_username` varchar(100) NOT NULL,
+  `action` varchar(50) NOT NULL,
+  `target_admin_id` int(11) DEFAULT NULL,
+  `old_values` text DEFAULT NULL,
+  `new_values` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_admin_audit_created` (`created_at`),
+  KEY `idx_admin_audit_target` (`target_admin_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 -- Table structure for table `audit_logs`
@@ -194,12 +243,47 @@ CREATE TABLE `sales_orders` (
   `receipt_mime` varchar(100) DEFAULT NULL,
   `inventory_reserved` tinyint(1) NOT NULL DEFAULT 0,
   `phone_normalized` varchar(32) DEFAULT NULL,
+  `coupon_id` bigint(20) unsigned DEFAULT NULL,
+  `coupon_code` varchar(40) DEFAULT NULL,
+  `discount_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_sales_created_at` (`created_at`),
   KEY `idx_sales_product_id` (`product_id`),
   KEY `idx_sales_phone_normalized` (`phone_normalized`),
   KEY `idx_sales_status_created` (`status`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `discount_coupons` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `coupon_code` varchar(40) NOT NULL,
+  `discount_type` varchar(12) NOT NULL,
+  `discount_value` decimal(10,2) NOT NULL,
+  `minimum_subtotal` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `max_uses` int(10) unsigned DEFAULT NULL,
+  `uses_count` int(10) unsigned NOT NULL DEFAULT 0,
+  `starts_at` datetime DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_discount_coupon_code` (`coupon_code`),
+  KEY `idx_discount_coupon_active_expiry` (`is_active`,`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `admin_notifications` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `notification_type` varchar(32) NOT NULL,
+  `title` varchar(160) NOT NULL,
+  `message` varchar(500) NOT NULL,
+  `target_url` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `read_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_admin_notifications_unread` (`read_at`,`created_at`),
+  KEY `idx_admin_notifications_type` (`notification_type`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `customer_profiles` (

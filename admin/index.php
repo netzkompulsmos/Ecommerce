@@ -1,21 +1,20 @@
 <?php
-include '../api/db.php';
+require_once __DIR__ . '/../api/admin-auth.php';
+require_once __DIR__ . '/primary-navigation.php';
 
-if (session_status() !== PHP_SESSION_ACTIVE && !session_start()) {
+if (!ensureAdminSecuritySchema($conn)) {
+    http_response_code(500);
+    exit('Could not prepare admin security. Check the server error log.');
+}
+if (!adminStartSession()) {
     http_response_code(500);
     exit('Could not start the admin session.');
 }
 
 $action = $_POST['action'] ?? $_GET['action'] ?? 'list';
 $loginError = '';
-$submittedCsrf = $_POST['csrf_token'] ?? '';
-$sessionCsrf = $_SESSION['admin_csrf_token'] ?? '';
-$csrfValid = is_string($submittedCsrf) && is_string($sessionCsrf) && $sessionCsrf !== '' && hash_equals($sessionCsrf, $submittedCsrf);
-
-if (empty($_SESSION['admin_csrf_token'])) {
-    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrfToken = $_SESSION['admin_csrf_token'];
+$csrfValid = adminCsrfValid();
+$csrfToken = adminCsrfToken();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'login') {
     if (!$csrfValid) {
@@ -24,43 +23,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'login') {
         $usernameInput = $_POST['username'] ?? '';
         $username = is_string($usernameInput) ? trim($usernameInput) : '';
         $password = $_POST['password'] ?? '';
-        $stmt = $conn->prepare('SELECT id, username, password FROM admins WHERE username = ? LIMIT 1');
-        if (!$stmt) {
-            error_log('Could not prepare admin login lookup: ' . $conn->error);
-            http_response_code(500);
-            exit('Admin sign-in is temporarily unavailable.');
-        }
-        $stmt->bind_param('s', $username);
-        if (!$stmt->execute()) {
-            error_log('Could not execute admin login lookup: ' . $stmt->error);
+        $loginLocks = adminAcquireLoginLocks($conn, $username);
+        if ($loginLocks === null) {
+            $loginError = 'Admin sign-in is temporarily unavailable. Please try again.';
+        } elseif (adminLoginIsLimited($conn, $username)) {
+            adminReleaseLoginLocks($conn, $loginLocks);
+            $loginError = 'Too many sign-in attempts. Please wait 15 minutes and try again.';
+        } else {
+            $stmt = $conn->prepare('SELECT id, username, password, role, permissions, is_active FROM admins WHERE username = ? LIMIT 1');
+            if (!$stmt) {
+                error_log('Could not prepare admin login lookup: ' . $conn->error);
+                http_response_code(500);
+                exit('Admin sign-in is temporarily unavailable.');
+            }
+            $stmt->bind_param('s', $username);
+            if (!$stmt->execute()) {
+                error_log('Could not execute admin login lookup: ' . $stmt->error);
+                $stmt->close();
+                http_response_code(500);
+                exit('Admin sign-in is temporarily unavailable.');
+            }
+            $admin = $stmt->get_result()->fetch_assoc();
             $stmt->close();
-            http_response_code(500);
-            exit('Admin sign-in is temporarily unavailable.');
-        }
-        $admin = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
 
-        if (is_string($password) && $admin && password_verify($password, $admin['password'])) {
+            $storedHash = is_array($admin) ? (string) $admin['password'] : '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
+            $passwordValid = is_string($password) && password_verify($password, $storedHash);
+            if ($admin && (int) $admin['is_active'] === 1 && $passwordValid) {
             session_regenerate_id(true);
             $_SESSION['admin_id'] = (int) $admin['id'];
             $_SESSION['admin_username'] = (string) $admin['username'];
             $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
-            header('Location: index.php');
-            exit;
+                if (!adminRegisterSession($conn, (int) $admin['id'])) {
+                    unset($_SESSION['admin_id'], $_SESSION['admin_username'], $_SESSION['admin_csrf_token']);
+                    adminReleaseLoginLocks($conn, $loginLocks);
+                    $loginError = 'Admin sign-in is temporarily unavailable.';
+                } else {
+                    adminClearFailedLogins($conn, $username);
+                    adminWriteAudit($conn, 'login');
+                    adminReleaseLoginLocks($conn, $loginLocks);
+                    header('Location: index.php');
+                    exit;
+                }
+            } else {
+                adminRecordFailedLogin($conn, $username);
+                adminReleaseLoginLocks($conn, $loginLocks);
+                $loginError = 'Incorrect username or password.';
+            }
         }
-
-        $loginError = 'Incorrect username or password.';
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'logout' && $csrfValid) {
-    unset($_SESSION['admin_id'], $_SESSION['admin_username'], $_SESSION['admin_csrf_token']);
-    session_regenerate_id(true);
+    adminDestroySession($conn);
     header('Location: index.php');
     exit;
 }
 
-if (!isset($_SESSION['admin_id'], $_SESSION['admin_username'])) {
+$currentAdmin = adminCurrentUser($conn);
+if ($currentAdmin === null) {
     ?>
     <!DOCTYPE html>
     <html lang="en">
@@ -106,7 +126,25 @@ if (!isset($_SESSION['admin_id'], $_SESSION['admin_username'])) {
     exit;
 }
 
-$adminUsername = (string) $_SESSION['admin_username'];
+$adminUsername = (string) $currentAdmin['username'];
+if (!adminHasPermission($currentAdmin, 'products')) {
+    if (adminHasPermission($currentAdmin, 'security')) {
+        header('Location: security.php');
+        exit;
+    }
+    foreach (['orders', 'inventory', 'customers', 'reports'] as $permission) {
+        if (adminHasPermission($currentAdmin, $permission)) {
+            header('Location: operations.php?view=' . rawurlencode($permission));
+            exit;
+        }
+    }
+    if (adminHasPermission($currentAdmin, 'support')) {
+        header('Location: ../customer-service/dashboard.php');
+        exit;
+    }
+    http_response_code(403);
+    exit('You do not have permission to access the admin dashboard.');
+}
 header('Cache-Control: no-store, private');
 if (!in_array($action, ['list', 'add', 'edit', 'delete'], true)) {
     $action = 'list';
@@ -120,10 +158,11 @@ if (!ensureSalesAnalyticsSchema($conn)) {
     http_response_code(500);
     exit('Could not prepare the sales analytics schema. Check the server error log.');
 }
-if (!ensureAdminOperationsSchema($conn)) {
+if (!ensureAdminOperationsSchema($conn) || !ensureStoreManagementSchema($conn)) {
     http_response_code(500);
     exit('Could not prepare admin operations. Check the server error log.');
 }
+$currencySymbol = storeCurrencySymbol($conn);
 
 $error_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($action, ['add', 'edit', 'delete'], true) && !$csrfValid) {
@@ -362,7 +401,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === '
                 $action === 'add' ? 'Initial stock from product form' : 'Stock changed in product form',
                 $adminUsername
             );
-            if (!$activitySaved || !$stockLogged || !$conn->commit()) {
+            $lowStockThreshold = $action === 'edit' ? (int) $product['low_stock_threshold'] : 5;
+            $lowStockCrossed = ($action === 'add' && $stock <= $lowStockThreshold)
+                || ($action === 'edit' && $stockBefore > $lowStockThreshold && $stock <= $lowStockThreshold);
+            $notificationSaved = !$lowStockCrossed || createAdminNotification(
+                $conn,
+                'low_stock',
+                'Low stock: ' . $name,
+                'Stock is now ' . $stock . ' unit(s), at or below its alert threshold.',
+                'operations.php?view=inventory'
+            );
+            if (!$activitySaved || !$stockLogged || !$notificationSaved || !$conn->commit()) {
                 $conn->rollback();
                 $error_msg = 'Product and its activity record could not be saved.';
                 if ($stmt) {
@@ -419,8 +468,8 @@ $todayStart = new DateTimeImmutable('today', new DateTimeZone('Asia/Phnom_Penh')
 $tomorrowStart = $todayStart->modify('+1 day');
 $yesterdayStart = $todayStart->modify('-1 day');
 $salesSummaryStatement = $conn->prepare("SELECT COALESCE(SUM(quantity), 0) AS units,
-    COALESCE(SUM(COALESCE(paid_amount, unit_price * quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = sales_orders.id AND h.event_type = 'refund_recorded')), 0) AS revenue,
-    COALESCE(SUM(CASE WHEN unit_cost IS NOT NULL THEN COALESCE(paid_amount, unit_price * quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = sales_orders.id AND h.event_type = 'refund_recorded') - unit_cost * quantity ELSE 0 END), 0) AS known_profit,
+    COALESCE(SUM(COALESCE(paid_amount, unit_price * quantity - discount_amount) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = sales_orders.id AND h.event_type = 'refund_recorded')), 0) AS revenue,
+    COALESCE(SUM(CASE WHEN unit_cost IS NOT NULL THEN COALESCE(paid_amount, unit_price * quantity - discount_amount) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = sales_orders.id AND h.event_type = 'refund_recorded') - unit_cost * quantity ELSE 0 END), 0) AS known_profit,
     COALESCE(SUM(CASE WHEN unit_cost IS NULL THEN quantity ELSE 0 END), 0) AS unknown_cost_units
     FROM sales_orders WHERE payment_status IN ('verified', 'partially_refunded', 'refunded') AND status <> 'Cancelled' AND created_at >= ? AND created_at < ?");
 if (!$salesSummaryStatement) {
@@ -445,7 +494,7 @@ if (!$salesSummaryStatement->execute()) {
 $yesterdaySales = $salesSummaryStatement->get_result()->fetch_assoc();
 $salesSummaryStatement->close();
 
-$salesStatement = $conn->prepare('SELECT order_reference, payment_method, status, payment_status, customer_name, product_name, unit_price, quantity, location, phone_number, created_at FROM sales_orders ORDER BY created_at DESC, id DESC LIMIT 50');
+$salesStatement = $conn->prepare('SELECT order_reference, payment_method, status, payment_status, customer_name, product_name, unit_price, quantity, coupon_code, discount_amount, location, phone_number, created_at FROM sales_orders ORDER BY created_at DESC, id DESC LIMIT 50');
 $activityStatement = $conn->prepare('SELECT product_id, product_name, action, actor, old_values, new_values, created_at FROM product_activity ORDER BY created_at DESC, id DESC LIMIT 50');
 if (!$salesStatement) {
     error_log('Could not prepare sales history query: ' . $conn->error);
@@ -1210,12 +1259,6 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                 <a href="index.php?action=add" class="ios-glass-btn btn-aurora">
                     <i class="fas fa-plus"></i> + បន្ថែមផលិតផលថ្មី
                 </a>
-                <a href="operations.php?view=orders" class="ios-glass-btn">
-                    <i class="fas fa-list-check"></i> Orders &amp; operations
-                </a>
-                <a href="../customer-service/dashboard.php" class="ios-glass-btn">
-                    <i class="fas fa-comments"></i> មើលសារអតិថិជន
-                </a>
                 <a href="../home/index.php" class="ios-glass-btn">
                     <i class="fas fa-external-link-alt"></i> មើលទំព័រមុខ
                 </a>
@@ -1227,19 +1270,14 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                         <option value="dark">Dark</option>
                     </select>
                 </div>
-                <form action="index.php" method="post" style="display:inline-flex;">
-                    <input type="hidden" name="action" value="logout">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                    <button type="submit" class="ios-glass-btn" style="border-color: rgba(255,75,75,0.4); color: #ff6b6b; cursor:pointer;">
-                        <i class="fas fa-sign-out-alt"></i> Sign out · <?= htmlspecialchars($adminUsername, ENT_QUOTES, 'UTF-8') ?>
-                    </button>
-                </form>
             </div>
         </div>
+        <?php renderAdminPrimaryNavigation($currentAdmin, 'products'); ?>
         <?php if ($error_msg !== ''): ?>
             <div class="admin-error"><?= htmlspecialchars($error_msg, ENT_QUOTES, 'UTF-8') ?></div>
         <?php endif; ?>
 
+        <?php if (adminHasPermission($currentAdmin, 'orders')): ?>
         <?php
         $todayUnits = (int) $todaySales['units'];
         $yesterdayUnits = (int) $yesterdaySales['units'];
@@ -1261,14 +1299,17 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
             </article>
             <article class="analytics-card">
                 <span>Net verified revenue today</span>
-                <strong>$<?= number_format((float) $todaySales['revenue'], 2) ?></strong>
+                <strong><?= htmlspecialchars($currencySymbol, ENT_QUOTES, 'UTF-8') ?><?= number_format((float) $todaySales['revenue'], 2) ?></strong>
                 <small>Customer online orders</small>
             </article>
             <article class="analytics-card">
                 <span>Profit / loss today (known costs)</span>
-                <strong class="<?= $knownProfit >= 0 ? 'trend-up' : 'trend-down' ?>"><?= $knownProfit < 0 ? '-' : '' ?>$<?= number_format(abs($knownProfit), 2) ?></strong>
+                <strong class="<?= $knownProfit >= 0 ? 'trend-up' : 'trend-down' ?>"><?= $knownProfit < 0 ? '-' : '' ?><?= htmlspecialchars($currencySymbol, ENT_QUOTES, 'UTF-8') ?><?= number_format(abs($knownProfit), 2) ?></strong>
                 <small><?= (int) $todaySales['unknown_cost_units'] ?> sale(s) excluded · cost not set</small>
             </article>
+        </section>
+        <?php endif; ?>
+        <section class="analytics-grid" aria-label="Inventory summary">
             <article class="analytics-card">
                 <span>Current units in stock</span>
                 <strong><?= $inventoryUnits ?></strong>
@@ -1290,6 +1331,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
             </section>
         <?php endif; ?>
 
+        <?php if (adminHasPermission($currentAdmin, 'orders')): ?>
         <section class="analytics-section">
             <h3><i class="fas fa-receipt" style="color:var(--cyber-cyan);"></i> Recent online orders (latest 50)</h3>
             <div class="admin-table-glass analytics-table-wrap">
@@ -1303,7 +1345,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                                     <td><?= htmlspecialchars($sale['payment_method'] ? strtoupper($sale['payment_method']) : 'ONLINE', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($sale['customer_name'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($sale['product_name'], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td>$<?= number_format((float) $sale['unit_price'], 2) ?></td>
+                                    <td><?= htmlspecialchars($currencySymbol, ENT_QUOTES, 'UTF-8') ?><?= number_format((float) $sale['unit_price'], 2) ?><?php if ((float) $sale['discount_amount'] > 0): ?><small><?= htmlspecialchars((string) $sale['coupon_code'], ENT_QUOTES, 'UTF-8') ?> · −<?= htmlspecialchars($currencySymbol, ENT_QUOTES, 'UTF-8') ?><?= number_format((float) $sale['discount_amount'], 2) ?></small><?php endif; ?></td>
                                     <td><?= (int) $sale['quantity'] ?></td>
                                     <td><?= htmlspecialchars($sale['location'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($sale['phone_number'], ENT_QUOTES, 'UTF-8') ?></td>
@@ -1319,6 +1361,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                 </table>
             </div>
         </section>
+        <?php endif; ?>
 
         <section class="analytics-section">
             <h3><i class="fas fa-clock-rotate-left" style="color:var(--cyber-purple);"></i> Product activity (latest 50)</h3>
@@ -1389,10 +1432,10 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                                 <td style="color: var(--text-muted); font-size: 13px;"><?= htmlspecialchars($row['description'] ?? '') ?></td>
                                 <td>
                                     <span style="display:inline-block; padding: 4px 10px; border-radius: 9999px; background: rgba(0,245,160,0.15); border: 1px solid rgba(0,245,160,0.3); color: #00f5a0; font-weight: 700;">
-                                        $<?= number_format($row['price'], 2) ?>
+                                        <?= htmlspecialchars($currencySymbol, ENT_QUOTES, 'UTF-8') ?><?= number_format($row['price'], 2) ?>
                                     </span>
                                 </td>
-                                <td><?= $row['cost_price'] === null ? 'Not set' : '$' . number_format((float) $row['cost_price'], 2) ?></td>
+                                <td><?= $row['cost_price'] === null ? 'Not set' : htmlspecialchars($currencySymbol, ENT_QUOTES, 'UTF-8') . number_format((float) $row['cost_price'], 2) ?></td>
                                 <td>
                                     <?php
                                     $stockAmount = (int) $row['stock'];

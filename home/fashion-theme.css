@@ -231,6 +231,7 @@
 }
 
 .fashion-storefront .hero-visual-side {
+    position: relative;
     width: min(34vw, 330px);
     height: 300px;
     border-radius: 48% 48% 4px 4px;
@@ -239,7 +240,19 @@
     gap: 8px;
 }
 
+.fashion-storefront .hero-managed-banner {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+    opacity: 0.72;
+}
+
 .fashion-storefront .hero-brand-caption {
+    position: relative;
+    z-index: 1;
     color: #805f4b;
     font-size: 10px;
     font-weight: 600;
@@ -247,6 +260,8 @@
 }
 
 .fashion-storefront .hero-brand-mark {
+    position: relative;
+    z-index: 1;
     color: #805f4b;
     font-family: Georgia, 'Kantumruy Pro', serif;
     font-size: clamp(84px, 11vw, 132px);
@@ -512,6 +527,49 @@
 
 .fashion-storefront .checkout-product-price span {
     color: #756d64;
+}
+
+.fashion-storefront .checkout-coupon-panel {
+    display: grid;
+    gap: 7px;
+    margin: 16px 0;
+    padding: 14px;
+    border: 1px solid #e8e1d8;
+    border-radius: 3px;
+    background: #faf8f5;
+    color: #514a43;
+}
+
+.fashion-storefront .checkout-coupon-panel label {
+    color: #514a43;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.fashion-storefront .checkout-coupon-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.fashion-storefront .checkout-coupon-row .cyber-buy-action {
+    min-width: 90px;
+    margin: 0;
+    padding: 8px 12px;
+}
+
+.fashion-storefront .checkout-coupon-status,
+.fashion-storefront .checkout-coupon-panel > p {
+    margin: 0;
+    font-size: 12px;
+}
+
+.fashion-storefront .checkout-coupon-status[data-state="error"] {
+    color: #995d48;
+}
+
+.fashion-storefront .checkout-coupon-status[data-state="success"] {
+    color: #526047;
 }
 
 .fashion-storefront .bank-sel-btn {

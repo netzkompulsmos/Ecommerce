@@ -28,7 +28,21 @@ This platform allows users to buy and sell gaming accounts easily and securely.
 cd net-account-seller
 
 ## Configure your environment:
-Database connection (config.php)
+Set database connection values in the process environment or a protected `.env` file:
+
+```dotenv
+APP_ENV=production
+ECOMMERCE_DB_HOST=127.0.0.1
+ECOMMERCE_DB_PORT=3306
+ECOMMERCE_DB_NAME=ecommerce
+ECOMMERCE_DB_USER=ecommerce_app
+ECOMMERCE_DB_PASSWORD=replace-with-a-secret
+```
+
+When `APP_ENV` is not `local`, the application refuses missing credentials and the MySQL `root` account. The local-only fallback (`localhost`, `root`, empty password) exists for XAMPP compatibility. Prefer environment variables or a secret store in production; keep `.env` outside the document root when possible. The included Apache rules deny access to dotfiles and `databases/`; configure equivalent denials when using Nginx or another web server. Apply the base `databases/ecommerce.sql` only to a new/empty database; it contains destructive `DROP TABLE` statements. For an existing database, apply versioned scripts from `databases/migrations/` with a migration/DBA account.
+
+After applying the base schema and migrations, give the web application a dedicated database account scoped to `ecommerce` with only the required data privileges (`SELECT`, `INSERT`, `UPDATE`, `DELETE`). Schema helpers now skip `CREATE TABLE` for existing tables; missing columns/tables still need to be provisioned by a migration account before deploying the DML-only account.
+
 Google OAuth credentials
 Telegram Bot Token
 Email SMTP settings
@@ -52,7 +66,23 @@ Products have a non-negative stock amount managed from the admin dashboard. Inve
 
 The admin dashboard requires a username and password from the `admins` table. Online orders are initially Pending, and an uploaded receipt never automatically marks an order Paid. An admin must independently verify the transaction ID and exact amount in the order review before the payment becomes verified. Rejections and refunds are recorded in the order history; refunds are records of transfers completed outside this app. The operations page provides order search and history, customer search/notes and phone-based checkout blocking, inventory management, daily/weekly/monthly reports, and Excel-compatible CSV exports. Existing orders without a recorded payment state remain Pending verification.
 
-Set each product's cost price in the dashboard to calculate estimated profit. Cost is optional when unknown; sales without a recorded cost are excluded from known-cost profit totals rather than being treated as zero-cost profit. Analytics, order history, customer profile, stock audit tables, and sales metadata columns are created automatically on first use; they are also included in `databases/ecommerce.sql`. The SQL file is an initialization dump and contains destructive `DROP TABLE` statements; do not import it over a live database as a migration.
+The storefront checkout submits one product per order through `api/telegram-order.php`; `api/cart.php` and `api/checkout.php` are unused placeholders and do not implement cart or checkout behavior. A multi-product cart would require a separate order-items design and is not included in the current flow.
+
+### Promotions, store settings, and notifications
+
+The Admin menu groups Dashboard, Products & Inventory, Orders & Payments, Customers & Customer Service, Reports & Analytics, Promotions & Homepage, Staff/Security, and Database Backup & Settings. Staff menu access is permission-gated. Admins can create percent/fixed coupons with start/expiry dates, minimum subtotal, and a usage cap. Checkout recalculates and reserves a coupon under a database row lock; payment verification and reports use the discounted amount. Store name, logo/contact URLs, currency display symbol, homepage headline/description, and hero banner URL are configurable from Admin. Currency changes affect display only; they do not convert stored prices or payments. Admin notifications are recorded for saved new orders and low-stock threshold crossings.
+
+### Database backups
+
+Admin backups are encrypted using AES-256-GCM and stored outside the web root. Production must set `ECOMMERCE_BACKUP_KEY` to a persistent random 32-byte key encoded as 64 hex characters or base64; retain it securely and preserve it when rotating deployments, or those backups cannot be restored. Local mode generates a mode-0600 `.backup-key` file in the private backup directory. `ECOMMERCE_BACKUP_DIR` can choose another private writable directory. Restore accepts only this app's encrypted JSON format, the same database name, a valid checksum/authentication tag, the current Admin password, and the typed confirmation `RESTORE`; it replaces rows only in matching tables and does not change schema. Keep additional off-host backup copies for disaster recovery, and store the encryption key separately from those copies.
+
+### Admin security and audit
+
+Open **Security & audit** from the admin dashboard to create Admin or Staff accounts, assign Staff permissions by section, review active sessions, and revoke sessions. Admins can change their own password; passwords must be at least 12 characters. Sessions expire after 30 minutes idle or 12 hours total. Login failures are rate-limited to five attempts per username or 20 per IP address in 15 minutes; login, account, session, customer-message deletion, and product activity are recorded. Admin state-changing forms require CSRF tokens, and privileged pages verify permissions server-side. The security schema is added automatically without deleting existing admin accounts. Use HTTPS in production so admin session cookies are marked Secure; configure the web server to supply the real client address as `REMOTE_ADDR` when operating behind a trusted proxy.
+
+Set each product's cost price in the dashboard to calculate estimated profit. Cost is optional when unknown; sales without a recorded cost are excluded from known-cost profit totals rather than being treated as zero-cost profit. Analytics, order history, customer profile, stock audit tables, and sales metadata columns are included in `databases/ecommerce.sql`. The security changes have an idempotent, additive migration at `databases/migrations/20261027_001_admin_security.sql`; it can safely skip columns/tables that the app has already created. Do not import the destructive initialization dump over a live database.
+
+Store-management schema additions use `databases/migrations/20261027_002_store_features.sql`. Apply versioned migrations with a migration/DBA account before deploying the web app with its restricted database user.
 
 ## Start local server (example using XAMPP or similar):
 Place in htdocs
