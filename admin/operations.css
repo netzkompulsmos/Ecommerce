@@ -431,6 +431,176 @@
     gap: 8px;
 }
 
+.report-loss-value,
+.report-comparison-card .is-negative {
+    color: #a74338 !important;
+}
+
+.report-comparison {
+    display: grid;
+    gap: 12px;
+    padding: 18px;
+    border: 1px solid #e8e1d8;
+    background: #faf8f5;
+}
+
+.report-comparison-heading,
+.report-chart-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+}
+
+.report-comparison-heading h3,
+.report-chart-heading h3 {
+    margin: 0;
+    color: #302923;
+    font-family: Georgia, 'Kantumruy Pro', serif;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.report-comparison-heading p,
+.report-chart-heading p {
+    margin: 4px 0 0;
+    color: #756d64;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.report-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.report-comparison-card {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #e8e1d8;
+    background: #fff;
+}
+
+.report-comparison-card > span,
+.report-comparison-card > small {
+    color: #756d64;
+    font-size: 11px;
+}
+
+.report-comparison-card > strong {
+    color: #302923;
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+}
+
+.report-comparison-card .is-positive {
+    color: #34734a;
+}
+
+.report-comparison-card .is-neutral {
+    color: #756d64;
+}
+
+.report-chart-panel {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid #e8e1d8;
+    background: #fff;
+}
+
+.report-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    color: #514a43;
+    font-size: 11px;
+}
+
+.report-chart-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.report-chart-legend i {
+    display: inline-block;
+    width: 18px;
+    height: 3px;
+    background: #3978c5;
+}
+
+.report-chart-legend .legend-profit {
+    background: #31916b;
+}
+
+.report-chart-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.report-trend-chart {
+    display: block;
+    width: 100%;
+    min-width: 600px;
+    height: auto;
+    overflow: visible;
+}
+
+.chart-grid-line {
+    stroke: #ece7e0;
+    stroke-width: 1;
+}
+
+.chart-zero-line {
+    stroke: #b7aa9c;
+    stroke-dasharray: 4 4;
+    stroke-width: 1.2;
+}
+
+.chart-axis-label {
+    fill: #756d64;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+}
+
+.chart-revenue-line,
+.chart-profit-line {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.5;
+    vector-effect: non-scaling-stroke;
+}
+
+.chart-revenue-line {
+    stroke: #3978c5;
+}
+
+.chart-profit-line {
+    stroke: #31916b;
+}
+
+.chart-revenue-point {
+    fill: #3978c5;
+}
+
+.chart-profit-point {
+    fill: #31916b;
+}
+
+.report-chart-empty {
+    margin: 0;
+    color: #756d64;
+    font-size: 12px;
+}
+
 .operations-logout {
     cursor: pointer;
 }
@@ -455,7 +625,12 @@ body.admin-storefront[data-theme="dark"] .operations-section-heading p,
 body.admin-storefront[data-theme="dark"] .order-review-heading p,
 body.admin-storefront[data-theme="dark"] .operations-help,
 body.admin-storefront[data-theme="dark"] .operations-pagination,
-body.admin-storefront[data-theme="dark"] .operation-card-form p {
+body.admin-storefront[data-theme="dark"] .operation-card-form p,
+body.admin-storefront[data-theme="dark"] .report-comparison-heading p,
+body.admin-storefront[data-theme="dark"] .report-chart-heading p,
+body.admin-storefront[data-theme="dark"] .report-comparison-card > span,
+body.admin-storefront[data-theme="dark"] .report-comparison-card > small,
+body.admin-storefront[data-theme="dark"] .report-chart-empty {
     color: #b0bac8;
 }
 
@@ -471,9 +646,48 @@ body.admin-storefront[data-theme="dark"] .operations-tabs a:hover,
 body.admin-storefront[data-theme="dark"] .operations-tabs a.is-active,
 body.admin-storefront[data-theme="dark"] .operations-filter,
 body.admin-storefront[data-theme="dark"] .operation-card-form,
-body.admin-storefront[data-theme="dark"] .operations-table-wrap {
+body.admin-storefront[data-theme="dark"] .operations-table-wrap,
+body.admin-storefront[data-theme="dark"] .report-comparison {
     border-color: #343c4a;
     background: #202735;
+}
+
+body.admin-storefront[data-theme="dark"] .report-chart-panel,
+body.admin-storefront[data-theme="dark"] .report-comparison-card {
+    border-color: #343c4a;
+    background: #171d28;
+}
+
+body.admin-storefront[data-theme="dark"] .report-comparison-heading h3,
+body.admin-storefront[data-theme="dark"] .report-chart-heading h3,
+body.admin-storefront[data-theme="dark"] .report-comparison-card > strong,
+body.admin-storefront[data-theme="dark"] .report-chart-legend {
+    color: #edf1f7;
+}
+
+body.admin-storefront[data-theme="dark"] .report-comparison-card .is-positive {
+    color: #8bd1a5;
+}
+
+body.admin-storefront[data-theme="dark"] .report-comparison-card .is-negative,
+body.admin-storefront[data-theme="dark"] .report-loss-value {
+    color: #f09a9a !important;
+}
+
+body.admin-storefront[data-theme="dark"] .report-comparison-card .is-neutral {
+    color: #b0bac8;
+}
+
+body.admin-storefront[data-theme="dark"] .chart-grid-line {
+    stroke: #343c4a;
+}
+
+body.admin-storefront[data-theme="dark"] .chart-zero-line {
+    stroke: #778395;
+}
+
+body.admin-storefront[data-theme="dark"] .chart-axis-label {
+    fill: #b0bac8;
 }
 
 body.admin-storefront[data-theme="dark"] .operation-card-form label,
@@ -572,6 +786,14 @@ body.admin-storefront[data-theme="dark"] .operation-error {
 
     .operations-nav form {
         flex: 1 1 100%;
+    }
+
+    .operations-nav > .theme-mode-admin {
+        flex: 1 1 100%;
+    }
+
+    .report-comparison-grid {
+        grid-template-columns: 1fr;
     }
 
     .operations-tabs {

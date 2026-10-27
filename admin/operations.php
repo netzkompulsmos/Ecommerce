@@ -479,6 +479,8 @@ $inventoryHistory = [];
 $customers = [];
 $dailyReports = [];
 $reportSummary = ['orders' => 0, 'units' => 0, 'revenue' => 0.0, 'refunds' => 0.0, 'cost' => 0.0, 'unknown_cost_units' => 0];
+$previousReportSummary = ['orders_count' => 0, 'revenue' => 0.0, 'known_profit' => 0.0];
+$chartReports = [];
 $topProducts = [];
 $dateFromDefault = (new DateTimeImmutable('first day of this month', new DateTimeZone('Asia/Phnom_Penh')))->format('Y-m-d');
 $dateToDefault = (new DateTimeImmutable('today', new DateTimeZone('Asia/Phnom_Penh')))->format('Y-m-d');
@@ -709,6 +711,48 @@ if ($view === 'orders') {
         $dailyReports[] = $row;
     }
     $statement->close();
+
+    $periodDays = $rangeDays + 1;
+    $previousDateTo = (new DateTimeImmutable($dateFrom, new DateTimeZone('Asia/Phnom_Penh')))->modify('-1 day');
+    $previousDateFrom = $previousDateTo->modify('-' . ($periodDays - 1) . ' days');
+    $previousStart = $previousDateFrom->format('Y-m-d') . ' 00:00:00';
+    $previousUntil = $previousDateTo->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
+    $statement = $conn->prepare("SELECT COUNT(*) AS orders_count,
+        COALESCE(SUM(COALESCE(s.paid_amount, s.unit_price * s.quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded')), 0) AS revenue,
+        COALESCE(SUM(CASE WHEN s.unit_cost IS NOT NULL THEN COALESCE(s.paid_amount, s.unit_price * s.quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = s.id AND h.event_type = 'refund_recorded') - s.unit_cost * s.quantity ELSE 0 END), 0) AS known_profit
+        FROM sales_orders s
+        WHERE s.payment_status IN ('verified', 'partially_refunded', 'refunded') AND s.status <> 'Cancelled' AND s.created_at >= ? AND s.created_at < ?");
+    if (!$statement) {
+        error_log('Could not prepare previous-period report comparison: ' . $conn->error);
+        http_response_code(500);
+        exit('Could not compare sales reports.');
+    }
+    $statement->bind_param('ss', $previousStart, $previousUntil);
+    if (!$statement->execute()) {
+        $statement->close();
+        error_log('Could not execute previous-period report comparison: ' . $conn->error);
+        http_response_code(500);
+        exit('Could not compare sales reports.');
+    }
+    $previousReportSummary = $statement->get_result()->fetch_assoc();
+    $statement->close();
+
+    $dailyByDate = [];
+    foreach ($dailyReports as $daily) {
+        $dailyByDate[$daily['sales_day']] = $daily;
+    }
+    $chartDate = new DateTimeImmutable($dateFrom, new DateTimeZone('Asia/Phnom_Penh'));
+    $chartLastDate = new DateTimeImmutable($dateTo, new DateTimeZone('Asia/Phnom_Penh'));
+    while ($chartDate <= $chartLastDate) {
+        $chartKey = $chartDate->format('Y-m-d');
+        $daily = $dailyByDate[$chartKey] ?? null;
+        $chartReports[] = [
+            'date' => $chartKey,
+            'revenue' => $daily ? (float) $daily['net_revenue'] : 0.0,
+            'profit' => $daily ? (float) $daily['known_profit'] : 0.0,
+        ];
+        $chartDate = $chartDate->modify('+1 day');
+    }
 }
 
 if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' && $validReportDates) {
@@ -801,6 +845,14 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
             <a href="index.php" class="ios-glass-btn"><i class="fas fa-boxes-stacked"></i> Products</a>
             <a href="index.php?view=orders" class="ios-glass-btn"><i class="fas fa-gauge"></i> Dashboard</a>
             <a href="../home/index.php" class="ios-glass-btn"><i class="fas fa-store"></i> Storefront</a>
+            <div class="theme-mode-control theme-mode-admin">
+                <label class="theme-mode-label" for="operationsThemeModeSelect">Theme</label>
+                <select id="operationsThemeModeSelect" data-theme-mode aria-label="Color theme">
+                    <option value="system">System</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
             <form method="post">
                 <input type="hidden" name="csrf_token" value="<?= operationsEscape($csrfToken) ?>">
                 <input type="hidden" name="operation" value="logout">
@@ -973,17 +1025,149 @@ if ($view === 'reports' && isset($_GET['export']) && $_GET['export'] === 'csv' &
                 <article class="analytics-card"><span>Verified orders</span><strong><?= (int) $reportSummary['orders_count'] ?></strong></article>
                 <article class="analytics-card"><span>Units sold</span><strong><?= (int) $reportSummary['units'] ?></strong></article>
                 <article class="analytics-card"><span>Net revenue</span><strong>$<?= number_format((float) $reportSummary['revenue'], 2) ?></strong><small>After refunds of $<?= number_format((float) $reportSummary['refunds'], 2) ?></small></article>
-                <article class="analytics-card"><span>Estimated profit (known costs)</span><strong>$<?= number_format((float) $reportSummary['known_profit'], 2) ?></strong><small><?= (int) $reportSummary['unknown_cost_units'] ?> units with no saved cost excluded</small></article>
+                <article class="analytics-card"><span><?= (float) $reportSummary['known_profit'] < 0 ? 'Estimated loss (known costs)' : 'Estimated profit (known costs)' ?></span><strong class="<?= (float) $reportSummary['known_profit'] < 0 ? 'report-loss-value' : '' ?>">$<?= number_format(abs((float) $reportSummary['known_profit']), 2) ?><?= (float) $reportSummary['known_profit'] < 0 ? ' loss' : '' ?></strong><small><?= (int) $reportSummary['unknown_cost_units'] ?> units with no saved cost excluded</small></article>
             </div>
             <?php
             $reportToday = new DateTimeImmutable('today', new DateTimeZone('Asia/Phnom_Penh'));
             $weekStart = $reportToday->modify('monday this week');
+            $comparisonCards = [
+                [
+                    'label' => 'Revenue change',
+                    'current' => (float) $reportSummary['revenue'],
+                    'previous' => (float) $previousReportSummary['revenue'],
+                    'format' => 'money',
+                ],
+                [
+                    'label' => 'Profit / loss change',
+                    'current' => (float) $reportSummary['known_profit'],
+                    'previous' => (float) $previousReportSummary['known_profit'],
+                    'format' => 'money',
+                ],
+                [
+                    'label' => 'Verified orders change',
+                    'current' => (float) $reportSummary['orders_count'],
+                    'previous' => (float) $previousReportSummary['orders_count'],
+                    'format' => 'count',
+                ],
+            ];
+            $chartWidth = 900;
+            $chartHeight = 320;
+            $chartLeft = 68;
+            $chartRight = 24;
+            $chartTop = 22;
+            $chartBottom = 48;
+            $plotWidth = $chartWidth - $chartLeft - $chartRight;
+            $plotHeight = $chartHeight - $chartTop - $chartBottom;
+            $chartValues = [0.0];
+            foreach ($chartReports as $point) {
+                $chartValues[] = $point['revenue'];
+                $chartValues[] = $point['profit'];
+            }
+            $chartMin = min($chartValues);
+            $chartMax = max($chartValues);
+            if ($chartMin === $chartMax) {
+                $chartMin = $chartMin === 0.0 ? -1.0 : $chartMin - abs($chartMin) * 0.1;
+                $chartMax = $chartMax === 0.0 ? 1.0 : $chartMax + abs($chartMax) * 0.1;
+            }
+            $chartPadding = ($chartMax - $chartMin) * 0.1;
+            $chartMin -= $chartPadding;
+            $chartMax += $chartPadding;
+            $chartY = static function (float $value) use ($chartMin, $chartMax, $chartTop, $plotHeight): float {
+                return $chartTop + (($chartMax - $value) / ($chartMax - $chartMin)) * $plotHeight;
+            };
+            $chartX = static function (int $index) use ($chartReports, $chartLeft, $plotWidth): float {
+                $lastIndex = count($chartReports) - 1;
+                return $chartLeft + ($lastIndex > 0 ? ($index / $lastIndex) * $plotWidth : $plotWidth / 2);
+            };
+            $revenuePoints = [];
+            $profitPoints = [];
+            foreach ($chartReports as $index => $point) {
+                $revenuePoints[] = number_format($chartX($index), 2, '.', '') . ',' . number_format($chartY($point['revenue']), 2, '.', '');
+                $profitPoints[] = number_format($chartX($index), 2, '.', '') . ',' . number_format($chartY($point['profit']), 2, '.', '');
+            }
+            $formatAxisValue = static function (float $value): string {
+                $absoluteValue = abs($value);
+                $shortValue = $absoluteValue >= 1000000
+                    ? number_format($value / 1000000, 1) . 'm'
+                    : ($absoluteValue >= 1000 ? number_format($value / 1000, 1) . 'k' : number_format($absoluteValue, $absoluteValue < 10 ? 2 : 0));
+                if ($absoluteValue < 10) {
+                    $shortValue = rtrim(rtrim($shortValue, '0'), '.');
+                    $shortValue = $shortValue === '' ? '0' : $shortValue;
+                }
+                return ($value < 0 ? '−' : '') . '$' . $shortValue;
+            };
             ?>
             <div class="report-quick-ranges" aria-label="Quick report ranges">
                 <a class="operation-button operation-button-secondary" href="?view=reports&amp;from=<?= $reportToday->format('Y-m-d') ?>&amp;to=<?= $reportToday->format('Y-m-d') ?>">Today</a>
                 <a class="operation-button operation-button-secondary" href="?view=reports&amp;from=<?= $weekStart->format('Y-m-d') ?>&amp;to=<?= $reportToday->format('Y-m-d') ?>">This week</a>
                 <a class="operation-button operation-button-secondary" href="?view=reports&amp;from=<?= $reportToday->modify('first day of this month')->format('Y-m-d') ?>&amp;to=<?= $reportToday->format('Y-m-d') ?>">This month</a>
             </div>
+            <section class="report-comparison" aria-label="Comparison with previous period">
+                <div class="report-comparison-heading">
+                    <h3>Growth vs previous period</h3>
+                    <p>Same number of days: <?= operationsEscape($previousDateFrom->format('M j, Y')) ?> – <?= operationsEscape($previousDateTo->format('M j, Y')) ?></p>
+                </div>
+                <div class="report-comparison-grid">
+                    <?php foreach ($comparisonCards as $comparison):
+                        $change = $comparison['current'] - $comparison['previous'];
+                        $changeClass = $change > 0 ? 'is-positive' : ($change < 0 ? 'is-negative' : 'is-neutral');
+                        $changeText = $comparison['format'] === 'money'
+                            ? (($change > 0 ? '+' : ($change < 0 ? '−' : '')) . '$' . number_format(abs($change), 2))
+                            : (($change > 0 ? '+' : ($change < 0 ? '−' : '')) . number_format(abs($change), 0));
+                        if ($comparison['previous'] > 0) {
+                            $percentText = ($change > 0 ? '+' : '') . number_format(($change / $comparison['previous']) * 100, 1) . '%';
+                        } elseif ($comparison['previous'] < 0) {
+                            $percentText = $change > 0 ? 'Improved from loss' : ($change < 0 ? 'Worsened from loss' : 'No change');
+                        } else {
+                            $percentText = $comparison['current'] > 0
+                                ? 'New activity'
+                                : ($comparison['current'] < 0 ? 'New loss' : 'No change');
+                        }
+                    ?>
+                        <article class="report-comparison-card">
+                            <span><?= operationsEscape($comparison['label']) ?></span>
+                            <strong class="<?= $changeClass ?>"><?= operationsEscape($changeText) ?></strong>
+                            <small><?= operationsEscape($percentText) ?> · Current <?= $comparison['format'] === 'money' ? '$' . number_format($comparison['current'], 2) : number_format($comparison['current'], 0) ?></small>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+            <section class="report-chart-panel" aria-labelledby="salesTrendHeading">
+                <div class="report-chart-heading">
+                    <div><h3 id="salesTrendHeading">Revenue and profit / loss trend</h3><p>Daily net revenue after refunds and estimated profit using products with saved costs.</p></div>
+                    <div class="report-chart-legend"><span><i class="legend-revenue"></i> Net revenue</span><span><i class="legend-profit"></i> Profit / loss</span></div>
+                </div>
+                <div class="report-chart-scroll">
+                    <svg class="report-trend-chart" viewBox="0 0 <?= $chartWidth ?> <?= $chartHeight ?>" role="img" aria-label="Daily net revenue and estimated profit or loss from <?= operationsEscape($dateFrom) ?> to <?= operationsEscape($dateTo) ?>">
+                        <?php for ($tick = 0; $tick <= 4; $tick++):
+                            $tickValue = $chartMax - (($chartMax - $chartMin) * $tick / 4);
+                            $tickY = $chartY($tickValue);
+                        ?>
+                            <line class="chart-grid-line" x1="<?= $chartLeft ?>" y1="<?= number_format($tickY, 2, '.', '') ?>" x2="<?= $chartWidth - $chartRight ?>" y2="<?= number_format($tickY, 2, '.', '') ?>"></line>
+                            <text class="chart-axis-label" x="<?= $chartLeft - 10 ?>" y="<?= number_format($tickY + 4, 2, '.', '') ?>" text-anchor="end"><?= operationsEscape($formatAxisValue($tickValue)) ?></text>
+                        <?php endfor; ?>
+                        <?php if ($chartMin < 0 && $chartMax > 0): ?><line class="chart-zero-line" x1="<?= $chartLeft ?>" y1="<?= number_format($chartY(0), 2, '.', '') ?>" x2="<?= $chartWidth - $chartRight ?>" y2="<?= number_format($chartY(0), 2, '.', '') ?>"></line><?php endif; ?>
+                        <?php if ($chartReports): ?>
+                            <polyline class="chart-revenue-line" points="<?= operationsEscape(implode(' ', $revenuePoints)) ?>"></polyline>
+                            <polyline class="chart-profit-line" points="<?= operationsEscape(implode(' ', $profitPoints)) ?>"></polyline>
+                            <?php foreach ($chartReports as $index => $point): ?>
+                                <circle class="chart-revenue-point" cx="<?= number_format($chartX($index), 2, '.', '') ?>" cy="<?= number_format($chartY($point['revenue']), 2, '.', '') ?>" r="3"><title><?= operationsEscape($point['date']) ?> · Revenue $<?= number_format($point['revenue'], 2) ?></title></circle>
+                                <circle class="chart-profit-point" cx="<?= number_format($chartX($index), 2, '.', '') ?>" cy="<?= number_format($chartY($point['profit']), 2, '.', '') ?>" r="3"><title><?= operationsEscape($point['date']) ?> · Profit / loss $<?= number_format($point['profit'], 2) ?></title></circle>
+                            <?php endforeach; ?>
+                            <?php
+                            $labelCount = min(6, count($chartReports));
+                            $labelIndexes = $labelCount > 1
+                                ? array_unique(array_map(static fn (int $step): int => (int) round($step * (count($chartReports) - 1) / ($labelCount - 1)), range(0, $labelCount - 1)))
+                                : [0];
+                            ?>
+                            <?php foreach ($labelIndexes as $labelIndex): ?>
+                                <text class="chart-axis-label chart-date-label" x="<?= number_format($chartX($labelIndex), 2, '.', '') ?>" y="<?= $chartHeight - 14 ?>" text-anchor="middle"><?= operationsEscape(substr($chartReports[$labelIndex]['date'], 5)) ?></text>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </svg>
+                </div>
+                <?php if (!$chartReports || (int) $reportSummary['orders_count'] === 0): ?><p class="report-chart-empty">No verified sales in this date range. The chart will show trends when payments are verified.</p><?php endif; ?>
+            </section>
             <h3 class="history-title">Daily sales breakdown</h3>
             <div class="operations-table-wrap"><table class="operations-table"><thead><tr><th>Date</th><th>Orders</th><th>Units</th><th>Net revenue</th><th>Estimated profit (known costs)</th></tr></thead><tbody>
                 <?php foreach ($dailyReports as $daily): ?><tr><td><?= operationsEscape($daily['sales_day']) ?></td><td><?= (int) $daily['order_count'] ?></td><td><?= (int) $daily['units'] ?></td><td>$<?= number_format((float) $daily['net_revenue'], 2) ?></td><td>$<?= number_format((float) $daily['known_profit'], 2) ?></td></tr><?php endforeach; ?>

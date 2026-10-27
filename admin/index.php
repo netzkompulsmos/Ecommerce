@@ -1206,7 +1206,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                 <span class="section-tag"><i class="fas fa-shield-alt"></i> Control Center</span>
                 <h2 style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 4px;">គ្រប់គ្រងផលិតផល (Products)</h2>
             </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div class="admin-header-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <a href="index.php?action=add" class="ios-glass-btn btn-aurora">
                     <i class="fas fa-plus"></i> + បន្ថែមផលិតផលថ្មី
                 </a>
@@ -1219,6 +1219,14 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                 <a href="../home/index.php" class="ios-glass-btn">
                     <i class="fas fa-external-link-alt"></i> មើលទំព័រមុខ
                 </a>
+                <div class="theme-mode-control theme-mode-admin">
+                    <label class="theme-mode-label" for="adminThemeModeSelect">Theme</label>
+                    <select id="adminThemeModeSelect" data-theme-mode aria-label="Color theme">
+                        <option value="system">System</option>
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
                 <form action="index.php" method="post" style="display:inline-flex;">
                     <input type="hidden" name="action" value="logout">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
