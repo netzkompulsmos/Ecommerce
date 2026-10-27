@@ -1,8 +1,6 @@
 <?php
 include '../api/db.php';
 
-const LOW_STOCK_THRESHOLD = 5;
-
 if (session_status() !== PHP_SESSION_ACTIVE && !session_start()) {
     http_response_code(500);
     exit('Could not start the admin session.');
@@ -121,6 +119,10 @@ if (!ensureProductStockColumn($conn)) {
 if (!ensureSalesAnalyticsSchema($conn)) {
     http_response_code(500);
     exit('Could not prepare the sales analytics schema. Check the server error log.');
+}
+if (!ensureAdminOperationsSchema($conn)) {
+    http_response_code(500);
+    exit('Could not prepare admin operations. Check the server error log.');
 }
 
 $error_msg = '';
@@ -348,7 +350,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === '
                 $oldValues,
                 $newValues
             );
-            if (!$activitySaved || !$conn->commit()) {
+            $stockBefore = $action === 'edit' ? (int) $product['stock'] : 0;
+            $stockChange = $stock - $stockBefore;
+            $stockLogged = $stockChange === 0 || recordInventoryAdjustment(
+                $conn,
+                $savedId,
+                $name,
+                $stockChange,
+                $stockBefore,
+                $stock,
+                $action === 'add' ? 'Initial stock from product form' : 'Stock changed in product form',
+                $adminUsername
+            );
+            if (!$activitySaved || !$stockLogged || !$conn->commit()) {
                 $conn->rollback();
                 $error_msg = 'Product and its activity record could not be saved.';
                 if ($stmt) {
@@ -404,7 +418,11 @@ $formImageUrl = is_string($_POST['image_url'] ?? null) ? $_POST['image_url'] : '
 $todayStart = new DateTimeImmutable('today', new DateTimeZone('Asia/Phnom_Penh'));
 $tomorrowStart = $todayStart->modify('+1 day');
 $yesterdayStart = $todayStart->modify('-1 day');
-$salesSummaryStatement = $conn->prepare('SELECT COALESCE(SUM(quantity), 0) AS units, COALESCE(SUM(unit_price * quantity), 0) AS revenue, COALESCE(SUM(CASE WHEN unit_cost IS NOT NULL THEN (unit_price - unit_cost) * quantity ELSE 0 END), 0) AS known_profit, COALESCE(SUM(CASE WHEN unit_cost IS NULL THEN quantity ELSE 0 END), 0) AS unknown_cost_units FROM sales_orders WHERE created_at >= ? AND created_at < ?');
+$salesSummaryStatement = $conn->prepare("SELECT COALESCE(SUM(quantity), 0) AS units,
+    COALESCE(SUM(COALESCE(paid_amount, unit_price * quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = sales_orders.id AND h.event_type = 'refund_recorded')), 0) AS revenue,
+    COALESCE(SUM(CASE WHEN unit_cost IS NOT NULL THEN COALESCE(paid_amount, unit_price * quantity) - (SELECT COALESCE(SUM(h.amount), 0) FROM sales_order_history h WHERE h.order_id = sales_orders.id AND h.event_type = 'refund_recorded') - unit_cost * quantity ELSE 0 END), 0) AS known_profit,
+    COALESCE(SUM(CASE WHEN unit_cost IS NULL THEN quantity ELSE 0 END), 0) AS unknown_cost_units
+    FROM sales_orders WHERE payment_status IN ('verified', 'partially_refunded', 'refunded') AND status <> 'Cancelled' AND created_at >= ? AND created_at < ?");
 if (!$salesSummaryStatement) {
     http_response_code(500);
     exit('Could not prepare the daily sales summary: ' . htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8'));
@@ -427,7 +445,7 @@ if (!$salesSummaryStatement->execute()) {
 $yesterdaySales = $salesSummaryStatement->get_result()->fetch_assoc();
 $salesSummaryStatement->close();
 
-$salesStatement = $conn->prepare('SELECT order_reference, payment_method, customer_name, product_name, unit_price, quantity, location, phone_number, created_at FROM sales_orders ORDER BY created_at DESC, id DESC LIMIT 50');
+$salesStatement = $conn->prepare('SELECT order_reference, payment_method, status, payment_status, customer_name, product_name, unit_price, quantity, location, phone_number, created_at FROM sales_orders ORDER BY created_at DESC, id DESC LIMIT 50');
 $activityStatement = $conn->prepare('SELECT product_id, product_name, action, actor, old_values, new_values, created_at FROM product_activity ORDER BY created_at DESC, id DESC LIMIT 50');
 if (!$salesStatement) {
     error_log('Could not prepare sales history query: ' . $conn->error);
@@ -469,7 +487,7 @@ $salesStatement->close();
 $activityStatement->close();
 
 $result = $conn->query('SELECT * FROM products ORDER BY id DESC');
-$lowStockResult = $conn->query('SELECT name, stock FROM products WHERE stock <= ' . LOW_STOCK_THRESHOLD . ' ORDER BY stock ASC, name ASC');
+$lowStockResult = $conn->query('SELECT name, stock, low_stock_threshold FROM products WHERE stock <= low_stock_threshold ORDER BY stock ASC, name ASC');
 $inventoryResult = $conn->query('SELECT COALESCE(SUM(stock), 0) AS units FROM products');
 if (!$result || !$lowStockResult || !$inventoryResult) {
     http_response_code(500);
@@ -1117,7 +1135,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                     <div class="form-group">
                         <label><i class="fas fa-boxes-stacked" style="color: var(--cyber-amber); margin-right: 6px;"></i> ចំនួនស្តុក (Stock amount)</label>
                         <input type="number" step="1" min="0" max="2147483647" name="stock" class="cyber-input" value="<?= htmlspecialchars($formStock, ENT_QUOTES, 'UTF-8') ?>" required>
-                        <div class="image-url-hint">Set to 0 to hide this product from the storefront. Low-stock alert at <?= LOW_STOCK_THRESHOLD ?> or fewer.</div>
+                        <div class="image-url-hint">Set to 0 to hide this product from the storefront. Configure its low-stock alert in Inventory.</div>
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-image" style="color: var(--cyber-pink); margin-right: 6px;"></i> រូបភាពផលិតផល (Product Image)</label>
@@ -1192,6 +1210,9 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                 <a href="index.php?action=add" class="ios-glass-btn btn-aurora">
                     <i class="fas fa-plus"></i> + បន្ថែមផលិតផលថ្មី
                 </a>
+                <a href="operations.php?view=orders" class="ios-glass-btn">
+                    <i class="fas fa-list-check"></i> Orders &amp; operations
+                </a>
                 <a href="../customer-service/dashboard.php" class="ios-glass-btn">
                     <i class="fas fa-comments"></i> មើលសារអតិថិជន
                 </a>
@@ -1231,7 +1252,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                 <small class="<?= $unitTrendClass ?>"><?= htmlspecialchars($unitTrend, ENT_QUOTES, 'UTF-8') ?> · yesterday: <?= $yesterdayUnits ?></small>
             </article>
             <article class="analytics-card">
-                <span>Sales revenue today</span>
+                <span>Net verified revenue today</span>
                 <strong>$<?= number_format((float) $todaySales['revenue'], 2) ?></strong>
                 <small>Customer online orders</small>
             </article>
@@ -1254,7 +1275,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                     <?php while ($lowStockProduct = $lowStockResult->fetch_assoc()): ?>
                         <li>
                             <?= htmlspecialchars($lowStockProduct['name'], ENT_QUOTES, 'UTF-8') ?>:
-                            <?= (int) $lowStockProduct['stock'] === 0 ? 'OUT OF STOCK' : (int) $lowStockProduct['stock'] . ' left' ?>
+                            <?= (int) $lowStockProduct['stock'] === 0 ? 'OUT OF STOCK' : (int) $lowStockProduct['stock'] . ' left (threshold ' . (int) $lowStockProduct['low_stock_threshold'] . ')' ?>
                         </li>
                     <?php endwhile; ?>
                 </ul>
@@ -1262,10 +1283,10 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
         <?php endif; ?>
 
         <section class="analytics-section">
-            <h3><i class="fas fa-receipt" style="color:var(--cyber-cyan);"></i> Recent purchases (latest 50)</h3>
+            <h3><i class="fas fa-receipt" style="color:var(--cyber-cyan);"></i> Recent online orders (latest 50)</h3>
             <div class="admin-table-glass analytics-table-wrap">
                 <table>
-                    <thead><tr><th>Receipt</th><th>Payment</th><th>Buyer</th><th>Product</th><th>Price</th><th>Amount</th><th>Location</th><th>Phone</th><th>Purchased at</th></tr></thead>
+                    <thead><tr><th>Order</th><th>Payment</th><th>Buyer</th><th>Product</th><th>Price</th><th>Qty</th><th>Location</th><th>Phone</th><th>Order status</th><th>Payment status</th><th>Created</th></tr></thead>
                     <tbody>
                         <?php if ($salesHistory->num_rows > 0): ?>
                             <?php while ($sale = $salesHistory->fetch_assoc()): ?>
@@ -1278,11 +1299,13 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                                     <td><?= (int) $sale['quantity'] ?></td>
                                     <td><?= htmlspecialchars($sale['location'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($sale['phone_number'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($sale['status'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars(ucwords(str_replace('_', ' ', $sale['payment_status'])), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($sale['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
-                            <tr><td colspan="9">No accepted purchases have been recorded yet.</td></tr>
+                            <tr><td colspan="11">No accepted orders have been recorded yet.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -1365,7 +1388,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                                 <td>
                                     <?php
                                     $stockAmount = (int) $row['stock'];
-                                    $stockClass = $stockAmount === 0 ? 'is-empty' : ($stockAmount <= LOW_STOCK_THRESHOLD ? 'is-low' : '');
+                                    $stockClass = $stockAmount === 0 ? 'is-empty' : ($stockAmount <= (int) $row['low_stock_threshold'] ? 'is-low' : '');
                                     ?>
                                     <span class="stock-badge <?= $stockClass ?>">
                                         <?= $stockAmount === 0 ? 'OUT OF STOCK' : $stockAmount ?>

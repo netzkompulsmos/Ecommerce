@@ -110,4 +110,6 @@ if (!function_exists('ensureSalesAnalyticsSchema')) {
         return true;
     }
 }
+
+require_once __DIR__ . '/admin-operations.php';
 ?>

@@ -25,6 +25,9 @@ DROP TABLE IF EXISTS `audit_logs`;
 DROP TABLE IF EXISTS `system_settings`;
 DROP TABLE IF EXISTS `login`;
 DROP TABLE IF EXISTS `messages`;
+DROP TABLE IF EXISTS `sales_order_history`;
+DROP TABLE IF EXISTS `customer_profiles`;
+DROP TABLE IF EXISTS `inventory_adjustments`;
 DROP TABLE IF EXISTS `sales_orders`;
 DROP TABLE IF EXISTS `product_activity`;
 DROP TABLE IF EXISTS `products`;
@@ -166,6 +169,7 @@ CREATE TABLE `products` (
   `cost_price` decimal(10,2) DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
   `stock` int(10) unsigned NOT NULL DEFAULT 0,
+  `low_stock_threshold` int(10) unsigned NOT NULL DEFAULT 5,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -182,10 +186,63 @@ CREATE TABLE `sales_orders` (
   `unit_cost` decimal(10,2) DEFAULT NULL,
   `order_reference` varchar(40) DEFAULT NULL,
   `payment_method` varchar(20) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'Pending',
+  `payment_status` varchar(20) NOT NULL DEFAULT 'pending',
+  `payment_transaction_id` varchar(120) DEFAULT NULL,
+  `paid_amount` decimal(10,2) DEFAULT NULL,
+  `receipt_filename` varchar(100) DEFAULT NULL,
+  `receipt_mime` varchar(100) DEFAULT NULL,
+  `inventory_reserved` tinyint(1) NOT NULL DEFAULT 0,
+  `phone_normalized` varchar(32) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_sales_created_at` (`created_at`),
-  KEY `idx_sales_product_id` (`product_id`)
+  KEY `idx_sales_product_id` (`product_id`),
+  KEY `idx_sales_phone_normalized` (`phone_normalized`),
+  KEY `idx_sales_status_created` (`status`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `customer_profiles` (
+  `phone_normalized` varchar(32) NOT NULL,
+  `phone_number` varchar(32) NOT NULL,
+  `customer_name` varchar(100) NOT NULL,
+  `notes` text DEFAULT NULL,
+  `is_blocked` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`phone_normalized`),
+  KEY `idx_customer_name` (`customer_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `sales_order_history` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) unsigned NOT NULL,
+  `event_type` varchar(32) NOT NULL,
+  `old_value` varchar(120) DEFAULT NULL,
+  `new_value` varchar(120) DEFAULT NULL,
+  `note` varchar(500) DEFAULT NULL,
+  `transaction_id` varchar(120) DEFAULT NULL,
+  `amount` decimal(10,2) DEFAULT NULL,
+  `actor` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_order_history_order_id` (`order_id`),
+  KEY `idx_order_history_type` (`event_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `inventory_adjustments` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` int(11) DEFAULT NULL,
+  `product_name` varchar(255) NOT NULL,
+  `change_amount` int(11) NOT NULL,
+  `stock_before` int(10) unsigned NOT NULL,
+  `stock_after` int(10) unsigned NOT NULL,
+  `reason` varchar(255) NOT NULL,
+  `actor` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_inventory_adjustments_product` (`product_id`),
+  KEY `idx_inventory_adjustments_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `product_activity` (
