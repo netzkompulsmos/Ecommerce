@@ -59,7 +59,7 @@ if ($is_checkout) {
                         'img' => !empty($row['image'])
                             ? (preg_match('~^https?://~i', $row['image']) ? $row['image'] : '../' . $row['image'])
                             : './logo/logome.png',
-                        'desc' => 'Account កម្មវិធីដែលមានគុណភាពខ្ពស់ និងធានាជូនពេញមួយខែ'
+                        'desc' => 'ផលិតផលមានគុណភាពខ្ពស់ និងមានការធានាជូន'
                     ];
                 }
                 $stmt->close();
@@ -74,7 +74,7 @@ if ($is_checkout) {
 
     if (!$product) {
         $product = [
-            'name' => 'Digital Account Plan',
+            'name' => 'Special Order',
             'price' => 'Special Offer',
             'img' => './logo/logome.png',
             'desc' => 'សូមទាក់ទងមកកាន់ Admin តាម Telegram ដើម្បីពិនិត្យតម្លៃ និងទិញ'
@@ -90,10 +90,13 @@ if ($page === 'about' && !$is_checkout) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php echo $is_checkout ? 'បង់ប្រាក់ • ' . htmlspecialchars($product['name']) . ' • DNA Cyber Edition' : 'អំពី NET STORE • APP ACCOUNT SELLER'; ?></title>
+        <title><?php echo $is_checkout ? 'បង់ប្រាក់ • ' . htmlspecialchars($product['name']) . ' • 4K STORE' : 'អំពី NET STORE • ហាងសម្លៀកបំពាក់ និងម៉ូដ'; ?></title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
         <link rel="icon" href="./logo/logome.png" type="image/x-icon">
         <link rel="stylesheet" href="./page.css?v=<?php echo filemtime(__DIR__ . '/page.css'); ?>">
+        <link rel="stylesheet" href="./fashion-theme.css?v=<?php echo filemtime(__DIR__ . '/fashion-theme.css'); ?>">
+        <link rel="stylesheet" href="../css/theme-mode.css?v=<?php echo filemtime(__DIR__ . '/../css/theme-mode.css'); ?>">
+        <script src="../js/page-navigation.js?v=<?php echo filemtime(__DIR__ . '/../js/page-navigation.js'); ?>" defer></script>
         <style>
             <?php if ($page === 'about' && !$is_checkout): ?>.about-cyber-layer {
                 position: relative;
@@ -543,7 +546,7 @@ if ($page === 'about' && !$is_checkout) {
         </style>
     </head>
 
-    <body>
+    <body class="fashion-storefront">
         <canvas id="dna-canvas"></canvas>
         <div class="canvas-overlay-vignette"></div>
         <div class="cyber-grid-lines"></div>
@@ -563,23 +566,23 @@ if ($page === 'about' && !$is_checkout) {
                         <div class="about-section-heading">
                             <span>Who We Are</span>
                             <h3>អំពី NET STORE</h3>
-                            <p>យើងជាក្រុមការងារដែលចង់ធ្វើឱ្យការស្វែងរក និងការទិញសេវាកម្មឌីជីថលមានភាពសាមញ្ញ និងងាយយល់។</p>
+                            <p>យើងចង់ធ្វើឱ្យការស្វែងរក និងការទិញសម្លៀកបំពាក់មានភាពងាយស្រួល មានព័ត៌មានច្បាស់ និងទាន់សម័យសម្រាប់អ្នក។</p>
                         </div>
                         <div class="about-story-grid">
                             <article class="about-info-card">
                                 <div class="about-icon"><i class="fas fa-users"></i></div>
                                 <h4>យើងជានរណា?</h4>
-                                <p>NET STORE បម្រើអតិថិជនដែលត្រូវការសេវាកម្ម និងគណនីកម្មវិធីឌីជីថល ដូចជា YouTube, Telegram, Canva, CapCut និងសេវាកម្មផ្សេងៗ។ យើងផ្តល់ព័ត៌មានផលិតផល និងជួយណែនាំតាមតម្រូវការរបស់អ្នក។</p>
+                                <p>4K STORE ជាហាងសម្លៀកបំពាក់ដែលជ្រើសរើសម៉ូដសម្រាប់ការស្លៀកពាក់ប្រចាំថ្ងៃ និងឱកាសពិសេស។ យើងផ្តល់ព័ត៌មានច្បាស់លាស់ ដើម្បីជួយអ្នកជ្រើសរើសផលិតផលដែលសមនឹងរចនាបថរបស់អ្នក។</p>
                             </article>
                             <article class="about-info-card">
                                 <div class="about-icon"><i class="fas fa-bullseye"></i></div>
                                 <h4>បេសកកម្មរបស់យើង</h4>
-                                <p>បេសកកម្មរបស់យើងគឺផ្តល់ជូននូវបទពិសោធន៍ទិញសេវាកម្មឌីជីថលដែលងាយស្រួល មានព័ត៌មានច្បាស់ និងមានជំនួយនៅពេលត្រូវការ ដើម្បីឱ្យអតិថិជនអាចជ្រើសរើសដោយមានទំនុកចិត្ត។</p>
+                                <p>បេសកកម្មរបស់យើងគឺផ្តល់បទពិសោធន៍ទិញសម្លៀកបំពាក់ដែលងាយស្រួល មានព័ត៌មានតម្លៃ និងផលិតផលច្បាស់លាស់ ព្រមទាំងមានជំនួយនៅពេលអ្នកត្រូវការ។</p>
                             </article>
                             <article class="about-info-card">
                                 <div class="about-icon"><i class="fas fa-eye"></i></div>
                                 <h4>ចក្ខុវិស័យរបស់យើង</h4>
-                                <p>យើងចង់ក្លាយជាហាងឌីជីថលដែលអតិថិជនក្នុងប្រទេសកម្ពុជាងាយស្រួលស្វែងរក សួរព័ត៌មាន និងទទួលបានការណែនាំសម្រាប់ការប្រើប្រាស់ផលិតផលឌីជីថល។</p>
+                                <p>យើងចង់ក្លាយជាហាងម៉ូដដែលអតិថិជនអាចស្វែងរកស្ទីលថ្មីៗ សួរព័ត៌មាន និងទទួលបានការណែនាំក្នុងការជ្រើសរើសសម្លៀកបំពាក់។</p>
                             </article>
                             <article class="about-info-card">
                                 <div class="about-icon"><i class="fas fa-heart"></i></div>
@@ -604,7 +607,7 @@ if ($page === 'about' && !$is_checkout) {
                             <article class="about-value-card">
                                 <div class="about-icon"><i class="fas fa-shield-halved"></i></div>
                                 <h4>ការយកចិត្តទុកដាក់</h4>
-                                <p>យើងគោរពព័ត៌មានដែលអតិថិជនផ្តល់ និងណែនាំឱ្យប្រើប្រាស់សេវាកម្មដោយប្រុងប្រយ័ត្ន និងមានសុវត្ថិភាព។</p>
+                                <p>យើងគោរពព័ត៌មានរបស់អតិថិជន និងយកចិត្តទុកដាក់លើការជ្រើសរើស ការវេចខ្ចប់ និងការដឹកជញ្ជូនផលិតផល។</p>
                             </article>
                             <article class="about-value-card">
                                 <div class="about-icon"><i class="fas fa-handshake"></i></div>
@@ -633,7 +636,7 @@ if ($page === 'about' && !$is_checkout) {
                     <div class="card-hologram-frame" style="width: 100px; height: 100px; margin: 0 auto 14px; border-radius: 20px;"><img src="<?php echo htmlspecialchars($product['img']); ?>" alt="Product"></div>
                     <h2 style="font-size: 24px; font-weight: 800; color: #fff; font-family: 'Space Grotesk', sans-serif;"><?php echo htmlspecialchars($product['name']); ?></h2>
                     <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;"><?php echo htmlspecialchars($product['desc']); ?></p>
-                    <div class="cyber-price-pill" style="margin: 14px auto; font-size: 22px;">$<?php echo htmlspecialchars($product['price']); ?> <span>/ ខែ (Per Month)</span></div>
+                    <div class="cyber-price-pill" style="margin: 14px auto; font-size: 22px;">$<?php echo htmlspecialchars($product['price']); ?> <span>/ មួយ</span></div>
                     <div class="bank-selector-pills">
                         <span class="bank-sel-btn active"><i class="fas fa-qrcode"></i>KHQR</span>
                     </div>
@@ -646,11 +649,12 @@ if ($page === 'about' && !$is_checkout) {
                         2. ចុចប៊ូតុងខាងក្រោមដើម្បីផ្ញើវិក្កយបត្រទៅកាន់ Telegram Admin ភ្លាមៗ
                     </div>
                     <a href="<?php echo htmlspecialchars($telegram_url); ?>" target="_blank" rel="noopener noreferrer" class="cyber-buy-action" style="text-decoration: none; padding: 14px; font-size: 15px;"><i class="fab fa-telegram-plane" style="font-size: 18px;"></i> ផ្ញើវិក្កយបត្រទៅ Telegram (@netisnet)</a>
-                    <div style="margin-top: 16px; font-size: 11.5px; color: var(--text-dim);"><i class="fas fa-clock"></i> Admin នឹងប្រគល់ Account ជូនលោកអ្នកក្នុងរយៈពេល 1-2 នាទី</div>
+                    <div style="margin-top: 16px; font-size: 11.5px; color: var(--text-dim);"><i class="fas fa-clock"></i> Admin នឹងបញ្ជាក់ការបញ្ជាទិញ និងព័ត៌មានដឹកជញ្ជូនតាម Telegram</div>
                 </div>
             </div>
         <?php endif; ?>
 
+        <script src="../js/theme-mode.js?v=<?php echo filemtime(__DIR__ . '/../js/theme-mode.js'); ?>"></script>
     </body>
 
     </html>
@@ -671,9 +675,12 @@ if ($page === 'about' && !$is_checkout) {
     <link rel="apple-touch-icon" href="./logo/logome.png">
     <!-- Cyber DNA Stylesheet -->
     <link rel="stylesheet" href="./page.css?v=<?php echo filemtime(__DIR__ . '/page.css'); ?>">
+    <link rel="stylesheet" href="./fashion-theme.css?v=<?php echo filemtime(__DIR__ . '/fashion-theme.css'); ?>">
+    <link rel="stylesheet" href="../css/theme-mode.css?v=<?php echo filemtime(__DIR__ . '/../css/theme-mode.css'); ?>">
+    <script src="../js/page-navigation.js?v=<?php echo filemtime(__DIR__ . '/../js/page-navigation.js'); ?>" defer></script>
 </head>
 
-<body class="<?php echo $is_checkout ? 'buy-modal-open' : ''; ?>">
+<body class="fashion-storefront<?php echo $is_checkout ? ' buy-modal-open' : ''; ?>">
     <!-- Live 3D DNA Helix Canvas Background -->
     <canvas id="dna-canvas"></canvas>
     <div class="canvas-overlay-vignette"></div>
@@ -736,12 +743,16 @@ if ($page === 'about' && !$is_checkout) {
             <div class="hero-centerpiece">
                 <div class="hero-text-side">
                     <div class="hero-tag-pill">
-                        <i class="fas fa-bolt"></i> Bio-Digital Account Matrix
+                        <i class="fas fa-sparkles"></i> NET STORE • Curated for you
                     </div>
                     <h2>គុណភាពខ្ពស់ 100%</h2>
                     <p>
                         ទិញ-លក់ផលិតផល​ ប្រកបដោយសុវត្ថិភាព មានការធានាជូន និងគាំទ្រការទូទាត់គ្រប់ធនាគារក្នុងប្រទេសកម្ពុជា។
                     </p>
+                    <a class="fashion-shop-cta" href="#productsCatalogMatrix">
+                        <span>Shop the collection</span>
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
                     <div class="hero-stats-row">
                         <div class="stat-chip">
                             <div class="stat-num">99.9<span>%</span></div>
@@ -758,18 +769,18 @@ if ($page === 'about' && !$is_checkout) {
                     </div>
                 </div>
 
-                <div class="hero-visual-side">
-                    <div class="hero-hologram-ring"></div>
-                    <div class="hero-hologram-ring-2"></div>
-                    <img src="./logo/logome.png" alt="NET Floating Emblem" class="hero-floating-logo">
+                <div class="hero-visual-side" aria-hidden="true">
+                    <span class="hero-brand-caption">4K STORE · CURATED GOODS</span>
+                    <span class="hero-brand-mark">4K</span>
                 </div>
             </div>
         </main>
 
-        <!-- Products Showcase Matrix -->
         <section class="catalog-header">
-            <div class="hero-tag-pill" style="margin-bottom: 8px;">
-                <i class="fas fa-layer-group"></i> Active Neural Catalog
+            <div class="catalog-heading-copy">
+                <span class="catalog-kicker">THE 4K EDIT</span>
+                <h2>ស្វែងរកផលិតផលដែលអ្នកចូលចិត្ត</h2>
+                <p>Browse our curated collection and find what suits you.</p>
             </div>
         </section>
 
@@ -916,7 +927,7 @@ if ($page === 'about' && !$is_checkout) {
                 <div class="card-hologram-frame checkout-product-image"><img src="<?php echo htmlspecialchars($product['img']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>"></div>
                 <h2 id="buyCheckoutTitle"><?php echo htmlspecialchars($product['name']); ?></h2>
                 <p class="checkout-product-description"><?php echo htmlspecialchars($product['desc']); ?></p>
-                <div class="cyber-price-pill checkout-product-price">$<?php echo htmlspecialchars($product['price']); ?> <span>/ ខែ (Per Month)</span></div>
+                <div class="cyber-price-pill checkout-product-price">$<?php echo htmlspecialchars($product['price']); ?> <span>/ មួយ</span></div>
                 <div class="checkout-payment-instructions">
                     <div><i class="fas fa-info-circle"></i> របៀបទូទាត់ប្រាក់៖</div>
                     1. ស្កេន QR Code ឬថតរូបអេក្រង់ (Screenshot)<br>
@@ -956,7 +967,7 @@ if ($page === 'about' && !$is_checkout) {
                     </button>
                 </form>
 
-                <div class="checkout-delivery-note"><i class="fas fa-clock"></i> Admin នឹងប្រគល់ Account ជូនលោកអ្នកក្នុងរយៈពេល 1-2 នាទី
+                <div class="checkout-delivery-note"><i class="fas fa-clock"></i> Admin នឹងបញ្ជាក់ការបញ្ជាទិញ និងព័ត៌មានដឹកជញ្ជូនតាម Telegram
                     <p class="checkout-email-privacy">ព័ត៌មាននេះនឹងត្រូវផ្ញើទៅ Admin តាម Telegram ប៉ុណ្ណោះ។</p>
                 </div>
             </section>
@@ -1144,6 +1155,7 @@ if ($page === 'about' && !$is_checkout) {
             });
         }
     </script>
+    <script src="../js/theme-mode.js?v=<?php echo filemtime(__DIR__ . '/../js/theme-mode.js'); ?>"></script>
 </body>
 
 </html>

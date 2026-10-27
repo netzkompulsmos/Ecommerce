@@ -1,0 +1,586 @@
+.admin-storefront,
+.message-storefront {
+    min-height: 100vh;
+    background: #f7f4ef;
+    color: #302923;
+}
+
+.admin-storefront .cyber-grid-lines,
+.message-storefront .cyber-grid-lines {
+    display: none;
+}
+
+.admin-storefront .admin-dashboard-container,
+.message-storefront .dashboard-container {
+    width: min(1320px, 100%);
+    max-width: none;
+    margin: 32px auto 60px;
+    padding: 0 clamp(12px, 3vw, 28px);
+}
+
+.admin-storefront .admin-header-glass,
+.message-storefront .dashboard-header {
+    border: 1px solid #e8e1d8;
+    border-radius: 3px;
+    background: #fff;
+    box-shadow: 0 8px 30px rgba(48, 41, 35, 0.045);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.admin-storefront .admin-header-glass h2,
+.message-storefront .dashboard-header h2 {
+    color: #302923 !important;
+    font-family: Georgia, 'Kantumruy Pro', serif;
+    font-weight: 500 !important;
+}
+
+.admin-storefront .section-tag,
+.message-storefront .dna-badge {
+    color: #98664f;
+}
+
+.admin-storefront .admin-header-glass > div:last-child,
+.message-storefront .dashboard-header > div:last-child {
+    gap: 8px !important;
+}
+
+.admin-storefront .ios-glass-btn,
+.admin-storefront .ios-glass-btn.btn-aurora,
+.admin-storefront .admin-header-glass form button.ios-glass-btn,
+.message-storefront .dashboard-header .cyber-glow-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px 15px !important;
+    border: 1px solid #332d28 !important;
+    border-radius: 2px;
+    background: #332d28 !important;
+    color: #fff !important;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: none;
+    cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.admin-storefront .ios-glass-btn:hover,
+.message-storefront .dashboard-header .cyber-glow-btn:hover {
+    transform: translateY(-1px);
+    border-color: #805f4b !important;
+    background: #805f4b !important;
+    box-shadow: none;
+}
+
+.admin-storefront .admin-header-glass form {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.admin-storefront .analytics-card,
+.admin-storefront .admin-table-glass,
+.message-storefront .dashboard-table-card {
+    border: 1px solid #e8e1d8;
+    border-radius: 3px;
+    background: #fff;
+    box-shadow: 0 5px 22px rgba(48, 41, 35, 0.04);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.admin-storefront .analytics-card span,
+.admin-storefront .analytics-card small {
+    color: #756d64;
+}
+
+.admin-storefront .analytics-card strong {
+    color: #302923;
+}
+
+.admin-storefront .analytics-section h3 {
+    color: #302923;
+    font-family: Georgia, 'Kantumruy Pro', serif;
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.admin-storefront .admin-table-glass,
+.message-storefront .dashboard-table-card {
+    overflow-x: auto;
+}
+
+.admin-storefront table,
+.message-storefront table {
+    min-width: 850px;
+}
+
+.admin-storefront thead,
+.message-storefront thead {
+    border-bottom: 1px solid #e8e1d8;
+    background: #f4f0ea;
+}
+
+.admin-storefront th,
+.message-storefront th {
+    color: #805f4b;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+}
+
+.admin-storefront td,
+.message-storefront td {
+    border-bottom: 1px solid #eee8e1;
+    color: #514a43;
+    font-size: 13px;
+}
+
+.admin-storefront .admin-table-glass td[style*="color: #00f2fe"] {
+    color: #98664f !important;
+}
+
+.admin-storefront .admin-table-glass td[style*="color: #fff"] {
+    color: #302923 !important;
+}
+
+.admin-storefront .admin-table-glass td span[style*="background"] {
+    border-color: #d9e0d0 !important;
+    border-radius: 2px !important;
+    background: #eff2eb !important;
+    color: #526047 !important;
+}
+
+.message-storefront td[style*="color: #fff"],
+.message-storefront td[style*="rgba(255, 255, 255"] {
+    color: #514a43 !important;
+}
+
+.admin-storefront tbody tr:hover,
+.message-storefront tbody tr:hover {
+    background: #faf8f5;
+}
+
+.admin-storefront .app-icon-img {
+    border: 1px solid #e8e1d8;
+    border-radius: 3px;
+    background: #f4f0ea;
+}
+
+.admin-storefront .btn-edit {
+    border-color: #d8c9bb;
+    border-radius: 2px;
+    background: #f5f0e9;
+    color: #805f4b;
+}
+
+.admin-storefront .btn-edit:hover {
+    background: #eee2d6;
+}
+
+.admin-storefront .btn-delete,
+.message-storefront .btn-delete {
+    border: 1px solid #ead0cb;
+    border-radius: 2px;
+    background: #fbefed;
+    color: #995d48;
+}
+
+.admin-storefront .btn-delete:hover,
+.message-storefront .btn-delete:hover {
+    border-color: #b87470;
+    background: #f5dfdc;
+    color: #81483a;
+}
+
+.admin-storefront .analytics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.admin-storefront .inventory-alert {
+    border-color: #e5cda9;
+    border-radius: 3px;
+    background: #fbf4e8;
+    color: #765b35;
+}
+
+.admin-storefront .inventory-alert h3 {
+    color: #765b35;
+}
+
+.admin-storefront .stock-badge {
+    border-color: #d9e0d0;
+    border-radius: 2px;
+    background: #eff2eb;
+    color: #526047;
+}
+
+.admin-storefront .stock-badge.is-low {
+    border-color: #e5cda9;
+    background: #fbf4e8;
+    color: #765b35;
+}
+
+.admin-storefront .stock-badge.is-empty {
+    border-color: #ead0cb;
+    background: #fbefed;
+    color: #995d48;
+}
+
+.admin-storefront .trend-up {
+    color: #526047 !important;
+}
+
+.admin-storefront .trend-down {
+    color: #995d48 !important;
+}
+
+.admin-storefront .admin-form-layer {
+    background: rgba(43, 36, 30, 0.5);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.admin-storefront .admin-form-card {
+    border: 1px solid #e8e1d8;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 24px 80px rgba(30, 25, 21, 0.22);
+}
+
+.admin-storefront .admin-form-card > div:first-child {
+    gap: 12px;
+}
+
+.admin-storefront .admin-form-card > div:first-child .cyber-glow-btn {
+    border: 1px solid #332d28 !important;
+    border-radius: 2px;
+    background: #332d28 !important;
+    color: #fff;
+    box-shadow: none;
+}
+
+.admin-storefront .admin-form-card .dna-badge {
+    border-color: #ded2c5;
+    border-radius: 2px;
+    background: #f5f0e9;
+    color: #805f4b;
+    box-shadow: none;
+}
+
+.admin-storefront .admin-form-card h2 {
+    color: #302923;
+    font-family: Georgia, 'Kantumruy Pro', serif;
+    font-size: 29px;
+    font-weight: 500;
+}
+
+.admin-storefront .admin-form-card .form-description,
+.admin-storefront .image-url-hint {
+    color: #756d64;
+}
+
+.admin-storefront .admin-form-card .form-group label {
+    color: #514a43;
+}
+
+.admin-storefront .admin-form-card .cyber-input {
+    border: 1px solid #ded5cb;
+    border-radius: 3px;
+    background: #faf8f5;
+    color: #302923;
+}
+
+.admin-storefront .admin-form-card .cyber-input:focus {
+    border-color: #98664f;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(152, 102, 79, 0.12);
+}
+
+.admin-storefront .admin-form-card .file-upload-box {
+    border: 1px dashed #d8c9bb;
+    border-radius: 3px;
+    background: #faf8f5;
+}
+
+.admin-storefront .admin-form-card .file-upload-box > div[style],
+.admin-storefront .admin-form-card .current-app-preview {
+    color: #514a43 !important;
+}
+
+.admin-storefront .image-source-option {
+    border-color: #e8e1d8;
+    border-radius: 3px;
+    background: #faf8f5;
+    color: #514a43;
+}
+
+.admin-storefront .image-source-option:has(input:checked) {
+    border-color: #98664f;
+    background: #f5f0e9;
+}
+
+.admin-storefront .image-source-option input {
+    accent-color: #98664f;
+}
+
+.admin-storefront .admin-form-card .current-app-preview {
+    border-color: #e8e1d8;
+    border-radius: 3px;
+    background: #faf8f5;
+}
+
+.admin-storefront .admin-form-card .current-app-preview img {
+    border-radius: 3px;
+    background: #f4f0ea;
+}
+
+.admin-storefront .admin-form-card .file-preview-wrap {
+    color: #526047;
+}
+
+.admin-storefront .admin-form-card .cyber-buy-action {
+    border: 1px solid #332d28;
+    border-radius: 2px;
+    background: #332d28;
+    color: #fff;
+    box-shadow: none;
+}
+
+.admin-storefront .admin-form-card .cyber-buy-action:hover {
+    transform: translateY(-1px);
+    background: #805f4b;
+    box-shadow: none;
+}
+
+.admin-storefront .admin-error {
+    border-color: #ead0cb;
+    border-radius: 3px;
+    background: #fbefed;
+    color: #995d48;
+}
+
+.admin-storefront .delete-confirmation-dialog {
+    border: 1px solid #e8e1d8;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 24px 80px rgba(30, 25, 21, 0.22);
+    color: #302923;
+}
+
+.admin-storefront .delete-warning-icon {
+    border-color: #ead0cb;
+    border-radius: 50%;
+    background: #fbefed;
+    color: #995d48;
+}
+
+.admin-storefront .delete-confirmation-dialog h2,
+.admin-storefront .delete-product-name {
+    color: #302923;
+}
+
+.admin-storefront .delete-confirmation-dialog p {
+    color: #756d64;
+}
+
+.admin-storefront .delete-confirmation-actions button,
+.admin-storefront .delete-confirmation-actions a {
+    border-radius: 2px;
+}
+
+.admin-storefront .delete-cancel-button {
+    border-color: #ded5cb !important;
+    background: #f7f4ef;
+    color: #514a43;
+}
+
+.admin-storefront .delete-confirm-button {
+    border-color: #995d48;
+    background: #995d48;
+    color: #fff;
+}
+
+.admin-storefront .delete-confirm-button:hover {
+    background: #81483a;
+}
+
+.admin-storefront .admin-login-wrap {
+    padding: 20px;
+}
+
+.admin-storefront .admin-login-card {
+    border: 1px solid #e8e1d8;
+    border-radius: 4px;
+    background: #fff;
+    color: #302923;
+    box-shadow: 0 12px 44px rgba(48, 41, 35, 0.09);
+}
+
+.admin-storefront .admin-login-card h1 {
+    color: #302923;
+    font-family: Georgia, 'Kantumruy Pro', serif;
+    font-weight: 500;
+}
+
+.admin-storefront .admin-login-card p {
+    color: #756d64;
+}
+
+.admin-storefront .admin-login-card label {
+    color: #514a43;
+}
+
+.admin-storefront .admin-login-card input {
+    border-color: #ded5cb;
+    border-radius: 3px;
+    background: #faf8f5;
+    color: #302923;
+}
+
+.admin-storefront .admin-login-card button {
+    border: 1px solid #332d28;
+    border-radius: 2px;
+    background: #332d28;
+    color: #fff;
+}
+
+.admin-storefront .admin-login-card button:hover {
+    background: #805f4b;
+}
+
+.admin-storefront .admin-login-error {
+    color: #995d48;
+}
+
+.message-storefront .dashboard-header h2 {
+    margin: 0;
+}
+
+.message-storefront .dashboard-header .dna-badge {
+    border-color: #ded2c5;
+    border-radius: 2px;
+    background: #f5f0e9;
+    box-shadow: none;
+}
+
+.message-storefront .dashboard-header .cyber-glow-btn:last-child {
+    border-color: #ded5cb !important;
+    background: #f7f4ef !important;
+    color: #514a43 !important;
+}
+
+.message-storefront .dashboard-header .cyber-glow-btn:last-child:hover {
+    border-color: #d0b9a6 !important;
+    background: #eee2d6 !important;
+}
+
+.message-storefront .delete-warning-overlay {
+    background: rgba(43, 36, 30, 0.5);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.message-storefront .delete-warning-dialog {
+    border: 1px solid #e8e1d8;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 24px 80px rgba(30, 25, 21, 0.22);
+}
+
+.message-storefront .delete-warning-icon {
+    border-color: #ead0cb;
+    border-radius: 50%;
+    background: #fbefed;
+    color: #995d48;
+    box-shadow: none;
+}
+
+.message-storefront .delete-warning-dialog h2 {
+    color: #302923;
+    font-family: Georgia, 'Kantumruy Pro', serif;
+    font-weight: 500;
+}
+
+.message-storefront .delete-warning-dialog p {
+    color: #756d64;
+}
+
+.message-storefront .delete-warning-actions button {
+    border-radius: 2px;
+}
+
+.message-storefront .delete-warning-cancel {
+    border-color: #ded5cb !important;
+    background: #f7f4ef;
+    color: #514a43;
+}
+
+.message-storefront .delete-warning-cancel:hover {
+    background: #eee8e1;
+}
+
+.message-storefront .delete-warning-confirm {
+    background: #995d48;
+    box-shadow: none;
+}
+
+.message-storefront .delete-warning-confirm:hover {
+    background: #81483a;
+}
+
+@media (max-width: 760px) {
+    .admin-storefront .admin-dashboard-container,
+    .message-storefront .dashboard-container {
+        margin-top: 20px;
+    }
+
+    .admin-storefront .admin-header-glass,
+    .message-storefront .dashboard-header {
+        padding: 20px;
+    }
+
+}
+
+@media (max-width: 600px) {
+    .admin-storefront .admin-header-glass,
+    .message-storefront .dashboard-header {
+        align-items: flex-start;
+    }
+
+    .admin-storefront .admin-header-glass > div:last-child,
+    .message-storefront .dashboard-header > div:last-child {
+        width: 100%;
+    }
+
+    .admin-storefront .admin-header-glass > div:last-child > a,
+    .admin-storefront .admin-header-glass form,
+    .admin-storefront .admin-header-glass form button {
+        flex: 1 1 auto;
+    }
+
+    .admin-storefront .admin-header-glass form button {
+        width: 100%;
+    }
+
+    .admin-storefront .analytics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .admin-storefront .analytics-card {
+        padding: 15px;
+    }
+
+    .admin-storefront .analytics-card strong {
+        font-size: 21px;
+    }
+
+}

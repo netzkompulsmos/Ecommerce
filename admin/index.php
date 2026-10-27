@@ -71,6 +71,8 @@ if (!isset($_SESSION['admin_id'], $_SESSION['admin_username'])) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Admin Sign In</title>
         <link rel="stylesheet" href="../home/page.css">
+        <link rel="stylesheet" href="../home/fashion-theme.css?v=<?php echo filemtime(__DIR__ . '/../home/fashion-theme.css'); ?>">
+        <script src="../js/page-navigation.js?v=<?php echo filemtime(__DIR__ . '/../js/page-navigation.js'); ?>" defer></script>
         <style>
             .admin-login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
             .admin-login-card { width: min(100%, 420px); padding: 34px; border: 1px solid rgba(0,242,254,.35); border-radius: 24px; background: rgba(10,16,32,.92); color: #fff; }
@@ -81,8 +83,10 @@ if (!isset($_SESSION['admin_id'], $_SESSION['admin_username'])) {
             .admin-login-card button { width: 100%; margin-top: 22px; padding: 12px; border: 0; border-radius: 10px; background: #00d9ee; color: #07111e; font: inherit; font-weight: 700; cursor: pointer; }
             .admin-login-error { margin-top: 16px; color: #ff8b9b; }
         </style>
+        <link rel="stylesheet" href="./backoffice-theme.css?v=<?php echo filemtime(__DIR__ . '/backoffice-theme.css'); ?>">
+        <link rel="stylesheet" href="../css/theme-mode.css?v=<?php echo filemtime(__DIR__ . '/../css/theme-mode.css'); ?>">
     </head>
-    <body>
+    <body class="fashion-storefront admin-storefront">
         <main class="admin-login-wrap">
             <form class="admin-login-card" method="post" action="index.php">
                 <h1>Admin sign in</h1>
@@ -97,6 +101,7 @@ if (!isset($_SESSION['admin_id'], $_SESSION['admin_username'])) {
                 <button type="submit">Sign in</button>
             </form>
         </main>
+        <script src="../js/theme-mode.js?v=<?php echo filemtime(__DIR__ . '/../js/theme-mode.js'); ?>"></script>
     </body>
     </html>
     <?php
@@ -422,7 +427,7 @@ if (!$salesSummaryStatement->execute()) {
 $yesterdaySales = $salesSummaryStatement->get_result()->fetch_assoc();
 $salesSummaryStatement->close();
 
-$salesStatement = $conn->prepare('SELECT customer_name, product_name, unit_price, quantity, location, phone_number, created_at FROM sales_orders ORDER BY created_at DESC, id DESC LIMIT 50');
+$salesStatement = $conn->prepare('SELECT order_reference, payment_method, customer_name, product_name, unit_price, quantity, location, phone_number, created_at FROM sales_orders ORDER BY created_at DESC, id DESC LIMIT 50');
 $activityStatement = $conn->prepare('SELECT product_id, product_name, action, actor, old_values, new_values, created_at FROM product_activity ORDER BY created_at DESC, id DESC LIMIT 50');
 if (!$salesStatement) {
     error_log('Could not prepare sales history query: ' . $conn->error);
@@ -478,10 +483,12 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>គ្រប់គ្រងព័ត៏មានកម្មវិធី • Admin Dashboard • iOS 27 Liquid Glass</title>
+    <title>Admin Dashboard • 4K STORE</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" href="../home/logo/logome.png" type="image/x-icon">
     <link rel="stylesheet" href="../home/page.css?v=<?php echo filemtime(__DIR__ . '/../home/page.css'); ?>">
+    <link rel="stylesheet" href="../home/fashion-theme.css?v=<?php echo filemtime(__DIR__ . '/../home/fashion-theme.css'); ?>">
+    <script src="../js/page-navigation.js?v=<?php echo filemtime(__DIR__ . '/../js/page-navigation.js'); ?>" defer></script>
     <style>
         .admin-dashboard-container {
             max-width: 1140px;
@@ -1057,9 +1064,11 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
             }
         }
     </style>
+    <link rel="stylesheet" href="./backoffice-theme.css?v=<?php echo filemtime(__DIR__ . '/backoffice-theme.css'); ?>">
+    <link rel="stylesheet" href="../css/theme-mode.css?v=<?php echo filemtime(__DIR__ . '/../css/theme-mode.css'); ?>">
 </head>
 
-<body>
+<body class="fashion-storefront admin-storefront">
     <div class="cyber-grid-lines"></div>
 
     <?php if ($action === 'add' || $action === 'edit'): ?>
@@ -1075,8 +1084,8 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                         <i class="fas fa-<?= $isEditing ? 'pen' : 'plus-circle' ?>"></i> <?= $isEditing ? 'Edit Product' : 'New Product' ?>
                     </span>
                 </div>
-                <h2><?= $isEditing ? 'កែសម្រួលកម្មវិធី' : 'បន្ថែមកម្មវិធីថ្មី' ?></h2>
-                <p class="form-description"><?= $isEditing ? 'ផ្លាស់ប្តូរឈ្មោះ ព័ត៌មានលម្អិត តម្លៃ ឬរូបភាពតំណាង' : 'សូមបំពេញព័ត៌មានលម្អិតនៃ Account ឬកម្មវិធីដែលត្រូវដាក់លក់' ?></p>
+                <h2><?= $isEditing ? 'កែសម្រួលផលិតផល' : 'បន្ថែមផលិតផលថ្មី' ?></h2>
+                <p class="form-description"><?= $isEditing ? 'ផ្លាស់ប្តូរឈ្មោះ ព័ត៌មានលម្អិត តម្លៃ ឬរូបភាពផលិតផល' : 'សូមបំពេញព័ត៌មានលម្អិតនៃផលិតផលដែលអ្នកចង់ដាក់លក់' ?></p>
 
                 <?php if ($error_msg !== ''): ?>
                     <div class="admin-error"><i class="fas fa-triangle-exclamation"></i> <?= htmlspecialchars($error_msg, ENT_QUOTES, 'UTF-8') ?></div>
@@ -1089,7 +1098,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                         <input type="hidden" name="id" value="<?= (int) $id ?>">
                     <?php endif; ?>
                     <div class="form-group">
-                        <label><i class="fas fa-tag" style="color: var(--cyber-cyan); margin-right: 6px;"></i> ឈ្មោះកម្មវិធី (Product Name)</label>
+                        <label><i class="fas fa-tag" style="color: var(--cyber-cyan); margin-right: 6px;"></i> ឈ្មោះផលិតផល (Product Name)</label>
                         <input type="text" name="name" class="cyber-input" value="<?= htmlspecialchars($formName, ENT_QUOTES, 'UTF-8') ?>" required>
                     </div>
                     <div class="form-group">
@@ -1111,10 +1120,10 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                         <div class="image-url-hint">Set to 0 to hide this product from the storefront. Low-stock alert at <?= LOW_STOCK_THRESHOLD ?> or fewer.</div>
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-image" style="color: var(--cyber-pink); margin-right: 6px;"></i> រូបភាពតំណាងកម្មវិធី (App Icon)</label>
+                        <label><i class="fas fa-image" style="color: var(--cyber-pink); margin-right: 6px;"></i> រូបភាពផលិតផល (Product Image)</label>
                         <?php if ($isEditing && !empty($product['image'])): ?>
                             <div class="current-app-preview">
-                                <img src="<?= htmlspecialchars(preg_match('~^https?://~i', $product['image']) ? $product['image'] : '../' . $product['image'], ENT_QUOTES, 'UTF-8') ?>" alt="Current Icon">
+                                <img src="<?= htmlspecialchars(preg_match('~^https?://~i', $product['image']) ? $product['image'] : '../' . $product['image'], ENT_QUOTES, 'UTF-8') ?>" alt="Current product image">
                                 <span>រូបភាពបច្ចុប្បន្ន — ទុកនៅទទេបើមិនចង់ប្តូរ</span>
                             </div>
                         <?php endif; ?>
@@ -1137,7 +1146,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                             <div class="file-upload-box">
                                 <input type="file" name="icon" id="iconFileInput" accept="image/jpeg,image/png,image/gif,image/webp">
                                 <i class="fas fa-cloud-arrow-up" style="font-size: 32px; color: var(--cyber-cyan); margin-bottom: 8px;"></i>
-                                <div style="font-size: 14px; font-weight: 700; color: #fff;">ចុចទីនេះដើម្បីជ្រើសរើសរូបភាព</div>
+                                <div style="font-size: 14px; font-weight: 700; color: #fff;">ចុចទីនេះដើម្បីជ្រើសរើសរូបភាពផលិតផល</div>
                                 <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">គាំទ្រ: PNG, JPG, WEBP ឬ GIF</div>
                                 <div class="file-preview-wrap" id="filePreviewWrap"><i class="fas fa-check"></i> <span id="fileNameLabel"></span></div>
                             </div>
@@ -1158,8 +1167,8 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
         <div class="admin-form-layer">
             <section class="delete-confirmation-dialog" role="alertdialog" aria-modal="true">
                 <div class="delete-warning-icon"><i class="fas fa-trash-can"></i></div>
-                <h2>បញ្ជាក់ការលុបកម្មវិធី</h2>
-                <p>តើអ្នកពិតជាចង់លុបកម្មវិធីនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។</p>
+                <h2>បញ្ជាក់ការលុបផលិតផល</h2>
+                <p>តើអ្នកពិតជាចង់លុបផលិតផលនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។</p>
                 <span class="delete-product-name"><?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?></span>
                 <?php if ($error_msg !== ''): ?><div class="admin-error"><?= htmlspecialchars($error_msg, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                 <form action="index.php" method="POST" class="delete-confirmation-actions">
@@ -1167,7 +1176,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                     <input type="hidden" name="id" value="<?= (int) $id ?>">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                     <a href="index.php" class="delete-cancel-button" style="display: inline-flex; align-items: center; text-decoration: none;">បោះបង់</a>
-                    <button type="submit" class="delete-confirm-button"><i class="fas fa-trash"></i> លុបកម្មវិធី</button>
+                    <button type="submit" class="delete-confirm-button"><i class="fas fa-trash"></i> លុបផលិតផល</button>
                 </form>
             </section>
         </div>
@@ -1177,11 +1186,11 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
         <div class="admin-header-glass">
             <div>
                 <span class="section-tag"><i class="fas fa-shield-alt"></i> Control Center</span>
-                <h2 style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 4px;">គ្រប់គ្រងព័ត៏មានកម្មវិធី (Products)</h2>
+                <h2 style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 4px;">គ្រប់គ្រងផលិតផល (Products)</h2>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <a href="index.php?action=add" class="ios-glass-btn btn-aurora">
-                    <i class="fas fa-plus"></i> + បន្ថែមកម្មវិធីថ្មី
+                    <i class="fas fa-plus"></i> + បន្ថែមផលិតផលថ្មី
                 </a>
                 <a href="../customer-service/dashboard.php" class="ios-glass-btn">
                     <i class="fas fa-comments"></i> មើលសារអតិថិជន
@@ -1224,7 +1233,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
             <article class="analytics-card">
                 <span>Sales revenue today</span>
                 <strong>$<?= number_format((float) $todaySales['revenue'], 2) ?></strong>
-                <small>Orders accepted by Telegram today</small>
+                <small>Customer online orders</small>
             </article>
             <article class="analytics-card">
                 <span>Profit / loss today (known costs)</span>
@@ -1256,11 +1265,13 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
             <h3><i class="fas fa-receipt" style="color:var(--cyber-cyan);"></i> Recent purchases (latest 50)</h3>
             <div class="admin-table-glass analytics-table-wrap">
                 <table>
-                    <thead><tr><th>Buyer</th><th>Product</th><th>Price</th><th>Amount</th><th>Location</th><th>Phone</th><th>Purchased at</th></tr></thead>
+                    <thead><tr><th>Receipt</th><th>Payment</th><th>Buyer</th><th>Product</th><th>Price</th><th>Amount</th><th>Location</th><th>Phone</th><th>Purchased at</th></tr></thead>
                     <tbody>
                         <?php if ($salesHistory->num_rows > 0): ?>
                             <?php while ($sale = $salesHistory->fetch_assoc()): ?>
                                 <tr>
+                                    <td><?= htmlspecialchars($sale['order_reference'] ?: 'Online order', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($sale['payment_method'] ? strtoupper($sale['payment_method']) : 'ONLINE', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($sale['customer_name'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($sale['product_name'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td>$<?= number_format((float) $sale['unit_price'], 2) ?></td>
@@ -1271,7 +1282,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
-                            <tr><td colspan="7">No accepted purchases have been recorded yet.</td></tr>
+                            <tr><td colspan="9">No accepted purchases have been recorded yet.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -1321,7 +1332,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                     <tr>
                         <th style="width: 60px;">ល.រ</th>
                         <th style="width: 80px;">រូបភាព</th>
-                        <th>ឈ្មោះកម្មវិធី</th>
+                        <th>ឈ្មោះផលិតផល</th>
                         <th>ព័ត៌មានលម្អិត</th>
                         <th>តម្លៃ</th>
                         <th>Cost</th>
@@ -1373,7 +1384,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
                     <?php else: ?>
                         <tr>
                             <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                                មិនទាន់មានទិន្នន័យកម្មវិធីនៅឡើយទេ (No products found)
+                                មិនទាន់មានផលិតផលនៅឡើយទេ (No products found)
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -1384,12 +1395,12 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
     <div class="delete-confirmation-backdrop" id="deleteConfirmation" hidden>
         <section class="delete-confirmation-dialog" role="alertdialog" aria-modal="true" aria-labelledby="deleteConfirmationTitle" aria-describedby="deleteConfirmationMessage" tabindex="-1">
             <div class="delete-warning-icon"><i class="fas fa-trash-can"></i></div>
-            <h2 id="deleteConfirmationTitle">បញ្ជាក់ការលុបកម្មវិធី</h2>
-            <p id="deleteConfirmationMessage">តើអ្នកពិតជាចង់លុបកម្មវិធីនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។</p>
+            <h2 id="deleteConfirmationTitle">បញ្ជាក់ការលុបផលិតផល</h2>
+            <p id="deleteConfirmationMessage">តើអ្នកពិតជាចង់លុបផលិតផលនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។</p>
             <span class="delete-product-name" id="deleteProductName"></span>
             <div class="delete-confirmation-actions">
                 <button type="button" class="delete-cancel-button" id="cancelProductDelete">បោះបង់</button>
-                <button type="button" class="delete-confirm-button" id="confirmProductDelete"><i class="fas fa-trash"></i> លុបកម្មវិធី</button>
+                <button type="button" class="delete-confirm-button" id="confirmProductDelete"><i class="fas fa-trash"></i> លុបផលិតផល</button>
             </div>
         </section>
     </div>
@@ -1468,6 +1479,7 @@ $inventoryUnits = (int) $inventoryResult->fetch_assoc()['units'];
             });
         </script>
     <?php endif; ?>
+    <script src="../js/theme-mode.js?v=<?php echo filemtime(__DIR__ . '/../js/theme-mode.js'); ?>"></script>
 </body>
 
 </html>

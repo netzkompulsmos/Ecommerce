@@ -180,6 +180,8 @@ CREATE TABLE `sales_orders` (
   `quantity` int(10) unsigned NOT NULL DEFAULT 1,
   `unit_price` decimal(10,2) NOT NULL,
   `unit_cost` decimal(10,2) DEFAULT NULL,
+  `order_reference` varchar(40) DEFAULT NULL,
+  `payment_method` varchar(20) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_sales_created_at` (`created_at`),

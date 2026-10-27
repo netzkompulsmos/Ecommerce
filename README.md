@@ -46,13 +46,13 @@ Order notifications contain the product name, price, customer name, phone number
 
 ### Product inventory
 
-Products have a non-negative stock amount managed from the admin dashboard. Inventory is reduced by one after an order is accepted by Telegram, and products with zero stock are hidden from the storefront and cannot be ordered. The admin dashboard warns when stock is 5 or fewer. The stock column is added automatically when the site is opened; existing products start at 0 and must be given their actual stock amount in the admin dashboard before they appear for sale.
+Products have a non-negative stock amount managed from the admin dashboard. Inventory is reduced by one after an order is accepted by Telegram. Products with zero stock are hidden from the storefront and cannot be ordered. The admin dashboard warns when stock is 5 or fewer. The stock column is added automatically when the site is opened; existing products start at 0 and must be given their actual stock amount in the admin dashboard before they appear for sale.
 
 ### Admin sales and activity reports
 
-The admin dashboard requires a username and password from the `admins` table. It records purchase details (buyer, product, price, quantity, location, phone, and time) after Telegram accepts an order, and logs which signed-in admin adds, edits, or deletes each product. Daily sales units are compared with the previous calendar day in Phnom Penh time.
+The admin dashboard requires a username and password from the `admins` table. Online purchase details are recorded after Telegram accepts an order. The dashboard also logs which signed-in admin adds, edits, or deletes each product. Daily sales units are compared with the previous calendar day in Phnom Penh time.
 
-Set each product's cost price in the dashboard to calculate purchase profit or loss. Cost is optional when unknown; sales without a recorded cost are excluded from profit/loss totals rather than being treated as zero-cost profit. Analytics tables and the nullable product cost column are created automatically on first use; they are also included in `databases/ecommerce.sql`.
+Set each product's cost price in the dashboard to calculate purchase profit or loss. Cost is optional when unknown; sales without a recorded cost are excluded from profit/loss totals rather than being treated as zero-cost profit. Analytics tables, sales metadata columns, and the nullable product cost column are created automatically on first use; they are also included in `databases/ecommerce.sql`.
 
 ## Start local server (example using XAMPP or similar):
 Place in htdocs

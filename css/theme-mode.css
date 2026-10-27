@@ -1,0 +1,475 @@
+.theme-mode-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid #ded5cb;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.96);
+    color: #332d28;
+    box-shadow: 0 5px 20px rgba(48, 41, 35, 0.14);
+    font: 600 12px/1.2 Arial, sans-serif;
+}
+
+.theme-mode-floating {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 20000;
+}
+
+.theme-mode-nav {
+    flex-shrink: 0;
+    padding: 3px 6px;
+    border-radius: 2px;
+    box-shadow: none;
+    font-size: 11px;
+}
+
+.theme-mode-mobile {
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    box-shadow: none;
+}
+
+.theme-mode-control select {
+    min-height: 30px;
+    padding: 4px 24px 4px 8px;
+    border: 1px solid #ded5cb;
+    border-radius: 3px;
+    background: #fff;
+    color: #332d28;
+    font: inherit;
+}
+
+html.page-navigation-ready body {
+    animation: page-navigation-enter 180ms ease-out both;
+}
+
+html.page-navigation-leaving body {
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 150ms ease, transform 150ms ease;
+}
+
+@keyframes page-navigation-enter {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+[data-theme="dark"] .theme-mode-control {
+    border-color: #3a4352;
+    background: #171d28;
+    color: #e8edf5;
+    box-shadow: 0 5px 22px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .theme-mode-control select {
+    border-color: #3a4352;
+    background: #10151e;
+    color: #e8edf5;
+}
+
+body.fashion-storefront[data-theme="dark"] {
+    --bg-dark: #10131b;
+    --bg-gradient: #10131b;
+    --card-bg: #171d28;
+    --card-border: #343c4a;
+    --text-white: #edf1f7;
+    --text-muted: #b0bac8;
+    --text-dim: #8490a1;
+    color-scheme: dark;
+    background: #10131b !important;
+    color: #edf1f7 !important;
+}
+
+body.fashion-storefront[data-theme="dark"] .cyber-nav-container,
+body.fashion-storefront[data-theme="dark"] .mobile-menu-drawer {
+    border-color: #343c4a;
+    background: rgba(20, 26, 36, 0.97);
+}
+
+body.fashion-storefront[data-theme="dark"] .brand-titles h1,
+body.fashion-storefront[data-theme="dark"] .hero-centerpiece h2,
+body.fashion-storefront[data-theme="dark"] .catalog-header h2,
+body.fashion-storefront[data-theme="dark"] .card-app-title,
+body.fashion-storefront[data-theme="dark"] .about-section-heading h3,
+body.fashion-storefront[data-theme="dark"] .about-contact h3,
+body.fashion-storefront[data-theme="dark"] .support-intro h2,
+body.fashion-storefront[data-theme="dark"] .buy-checkout-modal .checkout-cyber-card h2,
+body.fashion-storefront[data-theme="dark"] .checkout-order-form label,
+body.fashion-storefront[data-theme="dark"] .checkout-receipt-field-label {
+    color: #edf1f7 !important;
+    -webkit-text-fill-color: #edf1f7;
+}
+
+body.fashion-storefront[data-theme="dark"] .brand-titles > span,
+body.fashion-storefront[data-theme="dark"] .hero-centerpiece p,
+body.fashion-storefront[data-theme="dark"] .catalog-header p,
+body.fashion-storefront[data-theme="dark"] .card-feature-specs,
+body.fashion-storefront[data-theme="dark"] .checkout-delivery-note,
+body.fashion-storefront[data-theme="dark"] .checkout-email-privacy,
+body.fashion-storefront[data-theme="dark"] .checkout-product-description,
+body.fashion-storefront[data-theme="dark"] .checkout-order-status,
+body.fashion-storefront[data-theme="dark"] .support-intro p,
+body.fashion-storefront[data-theme="dark"] .about-section-heading p,
+body.fashion-storefront[data-theme="dark"] .about-contact p {
+    color: #b0bac8 !important;
+}
+
+body.fashion-storefront[data-theme="dark"] .cyber-island-nav,
+body.fashion-storefront[data-theme="dark"] .cyber-card,
+body.fashion-storefront[data-theme="dark"] .about-hero,
+body.fashion-storefront[data-theme="dark"] .about-section,
+body.fashion-storefront[data-theme="dark"] .about-contact,
+body.fashion-storefront[data-theme="dark"] .support-cyber-card,
+body.fashion-storefront[data-theme="dark"] .buy-checkout-modal .checkout-cyber-card,
+body.fashion-storefront[data-theme="dark"] .cyber-notify-card {
+    border-color: #343c4a !important;
+    background: #171d28 !important;
+    color: #edf1f7;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.28);
+}
+
+body.fashion-storefront[data-theme="dark"] .hero-centerpiece {
+    border: 1px solid #343c4a;
+    background: linear-gradient(120deg, #1d2735, #171d28 65%, #202130);
+}
+
+body.fashion-storefront[data-theme="dark"] .hero-visual-side,
+body.fashion-storefront[data-theme="dark"] .card-hologram-frame,
+body.fashion-storefront[data-theme="dark"] .about-info-card,
+body.fashion-storefront[data-theme="dark"] .about-value-card,
+body.fashion-storefront[data-theme="dark"] .about-service-card,
+body.fashion-storefront[data-theme="dark"] .about-step-card,
+body.fashion-storefront[data-theme="dark"] .checkout-receipt-upload,
+body.fashion-storefront[data-theme="dark"] .checkout-payment-instructions,
+body.fashion-storefront[data-theme="dark"] .bank-sel-btn {
+    border-color: #343c4a !important;
+    background: #202735 !important;
+    color: #d7deea !important;
+}
+
+body.fashion-storefront[data-theme="dark"] .about-info-card h4,
+body.fashion-storefront[data-theme="dark"] .about-value-card h4,
+body.fashion-storefront[data-theme="dark"] .about-service-card h4,
+body.fashion-storefront[data-theme="dark"] .about-step-card h4,
+body.fashion-storefront[data-theme="dark"] .about-info-card p,
+body.fashion-storefront[data-theme="dark"] .about-value-card p,
+body.fashion-storefront[data-theme="dark"] .about-service-card p,
+body.fashion-storefront[data-theme="dark"] .about-step-card p {
+    color: #d7deea !important;
+}
+
+body.fashion-storefront[data-theme="dark"] .checkout-order-form input,
+body.fashion-storefront[data-theme="dark"] .support-form .form-control-cyber,
+body.fashion-storefront[data-theme="dark"] .theme-mode-control select {
+    border-color: #3a4352 !important;
+    background: #10151e !important;
+    color: #edf1f7 !important;
+}
+
+body.fashion-storefront[data-theme="dark"] .checkout-order-form input::placeholder,
+body.fashion-storefront[data-theme="dark"] .support-form .form-control-cyber::placeholder {
+    color: #8490a1;
+}
+
+body.fashion-storefront[data-theme="dark"] .checkout-modal-close {
+    border-color: #3a4352;
+    background: #202735;
+    color: #edf1f7;
+}
+
+body.fashion-storefront[data-theme="dark"] .about-contact {
+    background: #202735 !important;
+}
+
+body.fashion-storefront[data-theme="light"] .about-hero {
+    border: 1px solid #e8e1d8;
+    background: #fff !important;
+    box-shadow: 0 8px 30px rgba(48, 41, 35, 0.045);
+}
+
+body.fashion-storefront[data-theme="light"] .about-hero h2 {
+    color: #302923 !important;
+}
+
+body.fashion-storefront[data-theme="light"] .about-lead {
+    color: #756d64 !important;
+}
+
+html[data-theme="light"],
+body.fashion-storefront[data-theme="light"] {
+    color-scheme: light !important;
+}
+
+body.fashion-storefront[data-theme="light"] {
+    --bg-dark: #f7f4ef;
+    --bg-gradient: #f7f4ef;
+    --cyber-cyan: #98664f;
+    --cyber-blue: #b17b60;
+    --cyber-purple: #765c4b;
+    --cyber-pink: #b87470;
+    --cyber-emerald: #68765e;
+    --cyber-amber: #9a7950;
+    --card-bg: #fff;
+    --card-border: #e7dfd6;
+    --text-white: #302923;
+    --text-muted: #756d64;
+    --text-dim: #958b80;
+    background: #f7f4ef !important;
+    color: #302923 !important;
+}
+
+body.fashion-storefront[data-theme="light"] .cyber-nav-container {
+    border-bottom: 1px solid #e8e1d8 !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+}
+
+body.fashion-storefront[data-theme="light"] .cyber-island-nav,
+body.fashion-storefront[data-theme="light"] .nav-hologram-links {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.fashion-storefront[data-theme="light"] .brand-titles h1,
+body.fashion-storefront[data-theme="light"] .hero-centerpiece h2,
+body.fashion-storefront[data-theme="light"] .catalog-header h2,
+body.fashion-storefront[data-theme="light"] .card-app-title,
+body.fashion-storefront[data-theme="light"] .about-section-heading h3,
+body.fashion-storefront[data-theme="light"] .about-contact h3,
+body.fashion-storefront[data-theme="light"] .support-intro h2,
+body.fashion-storefront[data-theme="light"] .buy-checkout-modal .checkout-cyber-card h2,
+body.fashion-storefront[data-theme="light"] .checkout-order-form label,
+body.fashion-storefront[data-theme="light"] .checkout-receipt-field-label {
+    color: #302923 !important;
+    -webkit-text-fill-color: #302923 !important;
+}
+
+body.fashion-storefront[data-theme="light"] .brand-titles > span,
+body.fashion-storefront[data-theme="light"] .hero-centerpiece p,
+body.fashion-storefront[data-theme="light"] .catalog-header p,
+body.fashion-storefront[data-theme="light"] .card-feature-specs,
+body.fashion-storefront[data-theme="light"] .checkout-delivery-note,
+body.fashion-storefront[data-theme="light"] .checkout-email-privacy,
+body.fashion-storefront[data-theme="light"] .checkout-product-description,
+body.fashion-storefront[data-theme="light"] .checkout-order-status,
+body.fashion-storefront[data-theme="light"] .support-intro p,
+body.fashion-storefront[data-theme="light"] .about-section-heading p,
+body.fashion-storefront[data-theme="light"] .about-contact p {
+    color: #756d64 !important;
+}
+
+body.fashion-storefront[data-theme="light"] .hero-centerpiece {
+    border: 0 !important;
+    background:
+        radial-gradient(ellipse at 82% 34%, rgba(193, 156, 126, 0.2), transparent 34%),
+        linear-gradient(112deg, #efe5d9 0%, #f5eee6 55%, #eee3d7 100%) !important;
+    box-shadow: none !important;
+}
+
+body.fashion-storefront[data-theme="light"] .hero-visual-side {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.42), rgba(211, 188, 166, 0.48)) !important;
+}
+
+body.fashion-storefront[data-theme="light"] .cyber-card,
+body.fashion-storefront[data-theme="light"] .about-hero,
+body.fashion-storefront[data-theme="light"] .about-section,
+body.fashion-storefront[data-theme="light"] .about-contact,
+body.fashion-storefront[data-theme="light"] .support-cyber-card,
+body.fashion-storefront[data-theme="light"] .buy-checkout-modal .checkout-cyber-card,
+body.fashion-storefront[data-theme="light"] .cyber-notify-card {
+    border: 1px solid #e8e1d8 !important;
+    background: #fff !important;
+    color: #302923 !important;
+    box-shadow: 0 5px 22px rgba(48, 41, 35, 0.05) !important;
+}
+
+body.fashion-storefront[data-theme="light"] .card-hologram-frame,
+body.fashion-storefront[data-theme="light"] .about-info-card,
+body.fashion-storefront[data-theme="light"] .about-value-card,
+body.fashion-storefront[data-theme="light"] .about-service-card,
+body.fashion-storefront[data-theme="light"] .about-step-card,
+body.fashion-storefront[data-theme="light"] .checkout-receipt-upload,
+body.fashion-storefront[data-theme="light"] .checkout-payment-instructions,
+body.fashion-storefront[data-theme="light"] .bank-sel-btn {
+    border-color: #e8e1d8 !important;
+    background: #f4f0ea !important;
+    color: #514a43 !important;
+}
+
+body.fashion-storefront[data-theme="light"] .about-info-card h4,
+body.fashion-storefront[data-theme="light"] .about-value-card h4,
+body.fashion-storefront[data-theme="light"] .about-service-card h4,
+body.fashion-storefront[data-theme="light"] .about-step-card h4,
+body.fashion-storefront[data-theme="light"] .about-info-card p,
+body.fashion-storefront[data-theme="light"] .about-value-card p,
+body.fashion-storefront[data-theme="light"] .about-service-card p,
+body.fashion-storefront[data-theme="light"] .about-step-card p {
+    color: #514a43 !important;
+}
+
+body.fashion-storefront[data-theme="light"] .cyber-price-pill {
+    color: #302923 !important;
+}
+
+body.fashion-storefront[data-theme="light"] .cyber-card .cyber-buy-action,
+body.fashion-storefront[data-theme="light"] .fashion-shop-cta,
+body.fashion-storefront[data-theme="light"] .checkout-telegram-action,
+body.fashion-storefront[data-theme="light"] .support-form .cyber-buy-action {
+    border-color: #332d28 !important;
+    background: #332d28 !important;
+    color: #fff !important;
+}
+
+body.fashion-storefront[data-theme="light"] .checkout-order-form input,
+body.fashion-storefront[data-theme="light"] .support-form .form-control-cyber {
+    border-color: #ded5cb !important;
+    background: #fff !important;
+    color: #302923 !important;
+}
+
+body.fashion-storefront[data-theme="light"] .checkout-modal-close {
+    border-color: #e8e1d8 !important;
+    background: #f7f4ef !important;
+    color: #514a43 !important;
+}
+
+body.admin-storefront[data-theme="dark"],
+body.message-storefront[data-theme="dark"] {
+    color-scheme: dark;
+    background: #10131b;
+    color: #edf1f7;
+}
+
+body.admin-storefront[data-theme="dark"] .admin-header-glass,
+body.admin-storefront[data-theme="dark"] .analytics-card,
+body.admin-storefront[data-theme="dark"] .admin-table-glass,
+body.admin-storefront[data-theme="dark"] .admin-form-card,
+body.message-storefront[data-theme="dark"] .dashboard-header,
+body.message-storefront[data-theme="dark"] .dashboard-table-card {
+    border-color: #343c4a;
+    background: #171d28;
+    color: #edf1f7;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+}
+
+body.admin-storefront[data-theme="dark"] .admin-header-glass h2,
+body.admin-storefront[data-theme="dark"] .analytics-section h3,
+body.admin-storefront[data-theme="dark"] .analytics-card strong,
+body.admin-storefront[data-theme="dark"] .admin-form-card h2,
+body.message-storefront[data-theme="dark"] .dashboard-header h2 {
+    color: #edf1f7 !important;
+}
+
+body.admin-storefront[data-theme="dark"] .analytics-card span,
+body.admin-storefront[data-theme="dark"] .analytics-card small,
+body.admin-storefront[data-theme="dark"] .form-description,
+body.admin-storefront[data-theme="dark"] .image-url-hint,
+body.message-storefront[data-theme="dark"] .dashboard-header p {
+    color: #b0bac8;
+}
+
+body.admin-storefront[data-theme="dark"] .admin-storefront thead,
+body.admin-storefront[data-theme="dark"] thead,
+body.message-storefront[data-theme="dark"] thead {
+    border-color: #343c4a;
+    background: #202735;
+}
+
+body.admin-storefront[data-theme="dark"] th,
+body.message-storefront[data-theme="dark"] th {
+    color: #b9a08e;
+}
+
+body.admin-storefront[data-theme="dark"] td,
+body.message-storefront[data-theme="dark"] td {
+    border-color: #2b3340;
+    color: #d7deea !important;
+}
+
+body.admin-storefront[data-theme="dark"] tbody tr:hover,
+body.message-storefront[data-theme="dark"] tbody tr:hover {
+    background: #202735;
+}
+
+body.admin-storefront[data-theme="dark"] .cyber-input,
+body.admin-storefront[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+body.admin-storefront[data-theme="dark"] textarea,
+body.admin-storefront[data-theme="dark"] select,
+body.message-storefront[data-theme="dark"] input,
+body.message-storefront[data-theme="dark"] textarea {
+    border-color: #3a4352 !important;
+    background: #10151e !important;
+    color: #edf1f7 !important;
+}
+
+body.admin-storefront[data-theme="dark"] .admin-login-card {
+    border-color: #343c4a;
+    background: #171d28;
+    color: #edf1f7;
+}
+
+body.admin-storefront[data-theme="dark"] .admin-login-card p,
+body.admin-storefront[data-theme="dark"] .admin-login-card label {
+    color: #d7deea;
+}
+
+body.admin-storefront[data-theme="dark"] .delete-confirmation-dialog,
+body.message-storefront[data-theme="dark"] .delete-warning-dialog {
+    border-color: #3a4352;
+    background: #171d28;
+    color: #edf1f7;
+}
+
+body.admin-storefront[data-theme="light"] .admin-login-card {
+    border-color: #e8e1d8;
+    background: #fff;
+    color: #302923;
+}
+
+body.admin-storefront[data-theme="light"] .admin-login-card p,
+body.admin-storefront[data-theme="light"] .admin-login-card label {
+    color: #514a43;
+}
+
+body.admin-storefront[data-theme="light"] .admin-login-card input {
+    border-color: #ded5cb;
+    background: #faf8f5;
+    color: #302923;
+}
+
+body.admin-storefront[data-theme="light"] .admin-login-card input::placeholder {
+    color: #81766d;
+}
+
+@media (max-width: 520px) {
+    .theme-mode-floating {
+        right: 10px;
+        bottom: 10px;
+        padding: 6px 8px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html.page-navigation-ready body,
+        html.page-navigation-leaving body {
+            animation: none;
+            opacity: 1;
+            transform: none;
+            transition: none;
+        }
+    }
+
+    .theme-mode-floating .theme-mode-label {
+        display: none;
+    }
+}

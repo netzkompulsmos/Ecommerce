@@ -57,6 +57,8 @@ if (!function_exists('ensureSalesAnalyticsSchema')) {
             quantity INT UNSIGNED NOT NULL DEFAULT 1,
             unit_price DECIMAL(10,2) NOT NULL,
             unit_cost DECIMAL(10,2) NULL DEFAULT NULL,
+            order_reference VARCHAR(40) NULL DEFAULT NULL,
+            payment_method VARCHAR(20) NULL DEFAULT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY idx_sales_created_at (created_at),
@@ -64,6 +66,26 @@ if (!function_exists('ensureSalesAnalyticsSchema')) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
         if (!$connection->query($salesTable)) {
             error_log('Could not create sales history table: ' . $connection->error);
+            return false;
+        }
+
+        $orderReferenceColumn = $connection->query("SHOW COLUMNS FROM sales_orders LIKE 'order_reference'");
+        if (!$orderReferenceColumn) {
+            error_log('Could not check sales order reference schema: ' . $connection->error);
+            return false;
+        }
+        if ($orderReferenceColumn->num_rows === 0 && !$connection->query('ALTER TABLE sales_orders ADD order_reference VARCHAR(40) NULL DEFAULT NULL')) {
+            error_log('Could not add sales order reference column: ' . $connection->error);
+            return false;
+        }
+
+        $paymentMethodColumn = $connection->query("SHOW COLUMNS FROM sales_orders LIKE 'payment_method'");
+        if (!$paymentMethodColumn) {
+            error_log('Could not check sales payment method schema: ' . $connection->error);
+            return false;
+        }
+        if ($paymentMethodColumn->num_rows === 0 && !$connection->query('ALTER TABLE sales_orders ADD payment_method VARCHAR(20) NULL DEFAULT NULL')) {
+            error_log('Could not add sales payment method column: ' . $connection->error);
             return false;
         }
 

@@ -82,6 +82,9 @@ body {
 .app-content-layer {
     position: relative;
     z-index: 10;
+    width: min(100%, 1440px);
+    min-height: 100vh;
+    margin-inline: auto;
 }
 
 /* ==========================================================================

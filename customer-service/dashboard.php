@@ -13,6 +13,7 @@ $result = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
   <link rel="icon" href="../home/logo/logome.png" type="image/x-icon">
   <link rel="apple-touch-icon" href="../home/logo/logome.png">
   <link rel="stylesheet" href="../home/page.css?v=<?php echo filemtime(__DIR__ . '/../home/page.css'); ?>">
+  <link rel="stylesheet" href="../home/fashion-theme.css?v=<?php echo filemtime(__DIR__ . '/../home/fashion-theme.css'); ?>">
   <style>
     .dashboard-container {
       max-width: 1140px;
@@ -246,9 +247,12 @@ $result = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
       }
     }
   </style>
+  <link rel="stylesheet" href="../admin/backoffice-theme.css?v=<?php echo filemtime(__DIR__ . '/../admin/backoffice-theme.css'); ?>">
+  <link rel="stylesheet" href="../css/theme-mode.css?v=<?php echo filemtime(__DIR__ . '/../css/theme-mode.css'); ?>">
+  <script src="../js/page-navigation.js?v=<?php echo filemtime(__DIR__ . '/../js/page-navigation.js'); ?>" defer></script>
 </head>
 
-<body>
+<body class="fashion-storefront message-storefront">
   <div class="cyber-grid-lines"></div>
 
   <div class="dashboard-container">
@@ -386,6 +390,7 @@ $result = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
       });
     })();
   </script>
+  <script src="../js/theme-mode.js?v=<?php echo filemtime(__DIR__ . '/../js/theme-mode.js'); ?>"></script>
 </body>
 
 </html>

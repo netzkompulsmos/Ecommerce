@@ -4,10 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ជំនួយអតិថិជន • Support • DNA Cyber Edition</title>
+    <title>ជំនួយអតិថិជន • 4K STORE</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" href="../home/logo/logome.png" type="image/x-icon">
     <link rel="stylesheet" href="../home/page.css?v=<?php echo filemtime(__DIR__ . '/../home/page.css'); ?>">
+    <link rel="stylesheet" href="../home/fashion-theme.css?v=<?php echo filemtime(__DIR__ . '/../home/fashion-theme.css'); ?>">
+    <link rel="stylesheet" href="../css/theme-mode.css?v=<?php echo filemtime(__DIR__ . '/../css/theme-mode.css'); ?>">
+    <script src="../js/page-navigation.js?v=<?php echo filemtime(__DIR__ . '/../js/page-navigation.js'); ?>" defer></script>
     <style>
         .support-cyber-layer {
             position: relative;
@@ -187,7 +190,7 @@
     </style>
 </head>
 
-<body>
+<body class="fashion-storefront">
     <div class="cyber-grid-lines"></div>
 
     <?php
@@ -206,7 +209,7 @@
                     ជំនួយ & ទំនាក់ទំនងអតិថិជន
                 </h2>
                 <p>
-                    មានសំណួរ ឬត្រូវការជំនួយអំពីសេវាកម្ម និងការបញ្ជាទិញមែនទេ? ផ្ញើសារមកក្រុមការងារ ហើយយើងនឹងជួយណែនាំអ្នកតាមជំហាន។
+                    មានសំណួរ ឬត្រូវការជំនួយអំពីផលិតផល ការបង់ប្រាក់ ឬការដឹកជញ្ជូនមែនទេ? ផ្ញើសារមកក្រុមការងារ ហើយយើងនឹងជួយណែនាំអ្នក។
                 </p>
                 <span class="dna-badge" style="font-size: 11px; padding: 4px 10px;">
                     <i class="fas fa-satellite-dish"></i> Support 24/7
@@ -247,6 +250,7 @@
         </div>
     </div>
 
+    <script src="../js/theme-mode.js?v=<?php echo filemtime(__DIR__ . '/../js/theme-mode.js'); ?>"></script>
 </body>
 
 </html>

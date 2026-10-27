@@ -18,7 +18,7 @@ $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
             </div>
             <div class="brand-titles">
                 <h1>4K STORE <span class="dna-badge">V.1.2</span></h1>
-                <span>បម្រើការសេវាកម្មឌីជីថល</span>
+                <span>ហាងសម្លៀកបំពាក់ និងម៉ូដ</span>
             </div>
         </a>
 
@@ -29,6 +29,14 @@ $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
             $nav_link('support', 'ជំនួយការ', 'fa-satellite-dish', $nav_support_url);
             $nav_link('payments', 'ការទូទាត់', 'fa-credit-card', $nav_payments_url);
             ?>
+            <div class="theme-mode-control theme-mode-nav">
+                <label class="theme-mode-label" for="themeModeSelect">Theme</label>
+                <select id="themeModeSelect" data-theme-mode aria-label="Color theme">
+                    <option value="system">System</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
         </div>
 
         <div class="nav-actions">
@@ -55,6 +63,14 @@ $nav_link = static function ($page, $label, $icon, $url) use ($nav_active) {
         $nav_link('support', 'ជំនួយការ', 'fa-satellite-dish', $nav_support_url);
         $nav_link('payments', 'ការទូទាត់', 'fa-credit-card', $nav_payments_url);
         ?>
+        <div class="theme-mode-control theme-mode-mobile">
+            <label class="theme-mode-label" for="mobileThemeModeSelect">Theme</label>
+            <select id="mobileThemeModeSelect" data-theme-mode aria-label="Color theme">
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </div>
         <a href="<?php echo htmlspecialchars($nav_admin_url, ENT_QUOTES, 'UTF-8'); ?>" class="nav-tab-btn" style="color: var(--cyber-cyan);"><i class="fas fa-shield-halved"></i> Admin</a>
     </div>
 </div>
